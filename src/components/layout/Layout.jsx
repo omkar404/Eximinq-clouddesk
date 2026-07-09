@@ -7,14 +7,14 @@ export default function Layout() {
   const [isPrimaryCollapsed, setIsPrimaryCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[linear-gradient(180deg,#f9fbff_0%,#f3f7fc_52%,#eef3f9_100%)] text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-[#e7e8eb] p-3 text-slate-900">
       <Sidebar
         isCollapsed={isPrimaryCollapsed}
         onToggle={() => setIsPrimaryCollapsed((prevState) => !prevState)}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[18px] border-y border-r border-slate-200 bg-[#f8fafc]">
         <Header />
-        <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-4 pt-3 md:px-5">
+        <main className="min-w-0 flex-1 overflow-y-auto px-3 pb-3 pt-3 custom-scrollbar">
           <Outlet />
         </main>
       </div>

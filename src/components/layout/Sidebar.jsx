@@ -1,12 +1,27 @@
 import { useAuth } from "../../context/useAuth";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { iconMap } from "../../utils/iconMap";
 import {
+  Building,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  ChevronUp,
+  ClipboardList,
+  Factory,
+  FileCheck,
+  FileText,
+  Folder,
+  Globe,
+  Landmark,
+  LogOut,
+  Scale,
+  Shield,
+  ShieldCheck,
+  Store,
+  Truck,
+  Wallet
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -54,6 +69,152 @@ function normalizeServiceStoreSegment(segment) {
   }
 
   return SERVICE_STORE_SEGMENT_ALIASES[slug] || slug;
+}
+
+function getMenuNameKey(value) {
+  return slugifySegment(value)
+    .replace(/licence/g, "license")
+    .replace(/customs-filing/g, "custom-filing")
+    .replace(/iso-and-trademark/g, "iso-trademark");
+}
+
+const nameIconMap = {
+  "service-store": Store,
+  compliance: ShieldCheck,
+  licensing: Landmark,
+  registration: Building,
+  incentives: Wallet,
+  "custom-filing": FileText,
+  "dispute-resolution": Scale,
+  "iso-trademark": FileCheck,
+  logistics: Truck,
+  "iem-registration": Building,
+  "industrial-license": Factory,
+  "wpc-license": Globe,
+  "un-iip-certificate": FileCheck,
+  "gst-returns": FileText,
+  "gst-return": FileText,
+  "gst-lut-filing": FileText,
+  "certificate-of-origin": FileText,
+  "warehouse-license": Factory,
+  "dsc-services": Shield,
+  ebrc: FileCheck,
+  "bulk-ebrc": ClipboardList,
+  "igcr-return": ClipboardList,
+  "pollution-control": Shield,
+  "ca-certification": FileCheck,
+  lmpc: Scale,
+  "epr-authorization": ClipboardList,
+  "epr-authorisation": ClipboardList
+};
+
+const serviceStoreSubmenus = {
+  compliance: [
+    ["Certificate of Origin", "certificate-of-origin"],
+    ["IEM Registration", "iem-registration"],
+    ["Industrial Licence", "industrial-licence"],
+    ["WPC Licence", "wpc-licence"],
+    ["UN IIP Certificate", "un-iip-certificate"],
+    ["GST Returns", "gst-return"],
+    ["GST LUT Filing", "gst-lut-filing"],
+    ["Warehouse License", "warehouse-license"],
+    ["DSC Services", "dsc-services"],
+    ["EPR Authorisation", "epr-authorisation"]
+  ],
+  licensing: [
+    ["Advance Authorisation", "advance-auth"],
+    ["EPCG License", "epcg"],
+    ["Star Export House", "star"],
+    ["REX Registration", "rex"],
+    ["IEC Services", "iec"]
+  ],
+  registration: [
+    ["FSSAI Registration", "fssai"],
+    ["BIS Registration", "bis"],
+    ["CDSCO Registration", "cdsco"],
+    ["AQCS & PQMS", "aqcs"],
+    ["Legal Metrology", "legal-metrology"]
+  ],
+  incentives: [
+    ["RoDTEP Claims", "rodtep"],
+    ["RoSCTL Claims", "rosctl"],
+    ["Duty Drawback", "duty"],
+    ["Interest Equalisation", "interest"],
+    ["IGST Refund", "igst"]
+  ],
+  "custom-filing": [
+    ["MOOWR Filing", "moowr"],
+    ["DPD Registration", "dpd"],
+    ["RMCC Support", "rmcc"],
+    ["SVB Filing", "svb"],
+    ["Factory Stuffing", "factory-stuffing"]
+  ],
+  "dispute-resolution": [
+    ["DGFT Relaxation", "dgft-relaxation"],
+    ["Customs Defence", "customs-defense"],
+    ["SCN Reply", "scn-reply"],
+    ["Appeal Support", "appeal-support"],
+    ["CA Certification", "ca-certification"]
+  ],
+  "iso-trademark": [
+    ["ISO Certification", "iso"],
+    ["Trademark Filing", "trademark"],
+    ["Brand Protection", "brand-protection"],
+    ["Audit Support", "audit-support"]
+  ],
+  logistics: [
+    ["Freight Coordination", "freight"],
+    ["Port Operations", "port-operations"],
+    ["Warehouse Coordination", "warehouse"],
+    ["Shipment Tracking", "shipment-tracking"],
+    ["Documentation Desk", "documentation-desk"]
+  ]
+};
+
+function getMenuIcon(menu) {
+  return (
+    iconMap[menu.path] ||
+    nameIconMap[getMenuNameKey(menu.name)] ||
+    nameIconMap[normalizeServiceStoreSegment(menu.name)] ||
+    Folder
+  );
+}
+
+function getServiceStoreCategoryKey(menu) {
+  const pathParts = getComparablePathParts(menu.path || "");
+  const serviceStoreIndex = pathParts.indexOf("service-store");
+  const pathCategory = serviceStoreIndex >= 0
+    ? normalizeServiceStoreSegment(pathParts[serviceStoreIndex + 1])
+    : "";
+  const nameCategory = getMenuNameKey(menu.name);
+
+  return serviceStoreSubmenus[pathCategory]
+    ? pathCategory
+    : serviceStoreSubmenus[nameCategory]
+      ? nameCategory
+      : "";
+}
+
+function buildSyntheticServiceStoreChildren(menu) {
+  const categoryKey = getServiceStoreCategoryKey(menu);
+
+  if (!categoryKey || menu.children?.length) {
+    return [];
+  }
+
+  const basePath =
+    menu.path && menu.path.includes("/service-store/")
+      ? menu.path.replace(/\/+$/, "")
+      : `/client/service-store/${categoryKey}`;
+
+  return serviceStoreSubmenus[categoryKey].map(([name, segment], index) => ({
+    id: `${menu.id || categoryKey}-synthetic-${segment}`,
+    name,
+    path: `${basePath}/${segment}`,
+    parent_id: menu.id || null,
+    display_order: index,
+    children: []
+  }));
 }
 
 function getComparablePathParts(path) {
@@ -156,9 +317,12 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
   const { user, onboarding } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [open, setOpen] = useState(false);
-  const hasChildren = menu.children && menu.children.length > 0;
-  const Icon = iconMap[menu.path];
+  const syntheticChildren = buildSyntheticServiceStoreChildren(menu);
+  const visibleChildren = menu.children?.length ? menu.children : syntheticChildren;
+  const serviceStoreCategoryKey = getServiceStoreCategoryKey(menu);
+  const forceExpandable = Boolean(serviceStoreCategoryKey);
+  const hasChildren = visibleChildren.length > 0 || forceExpandable;
+  const Icon = getMenuIcon(menu);
   const formIncomplete =
     user?.role === "CLIENT" && onboarding?.companyProfileCompleted !== true;
   const approvalPending =
@@ -166,9 +330,10 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
 
   const isDirectPathActive = matchesMenuPath(location.pathname, menu.path);
   const hasActiveChild = Boolean(
-    menu.children?.some((child) => isMenuBranchActive(child, location.pathname))
+    visibleChildren.some((child) => isMenuBranchActive(child, location.pathname))
   );
   const isInActiveBranch = isMenuBranchActive(menu, location.pathname);
+  const [open, setOpen] = useState(() => hasChildren && isInActiveBranch);
   const isLeafActive = isInActiveBranch && !hasChildren;
   const isDirectParentActive = isDirectPathActive && hasChildren;
   const menuClasses = getMenuClasses({
@@ -177,12 +342,8 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
     isDirectParentActive,
     hasActiveChild
   });
-
-  useEffect(() => {
-    if (hasChildren && isInActiveBranch) {
-      setOpen(true);
-    }
-  }, [hasChildren, isInActiveBranch]);
+  const displayOpen = open || isInActiveBranch;
+  const ExpandIcon = displayOpen ? ChevronUp : ChevronDown;
 
   const showToast = () => {
     if (menu.path === "/client/company-profile-setup") {
@@ -226,7 +387,7 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
         navigate(menu.path);
       }
 
-      setOpen((prevOpen) => (isInActiveBranch ? !prevOpen : true));
+      setOpen(true);
     }
   };
 
@@ -236,21 +397,19 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
         to={menu.path || "#"}
         onClick={handleClick}
         className={() =>
-          `group flex min-w-0 items-center justify-between rounded-2xl px-3 transition-all duration-300 ease-out ${
+          `group flex min-w-0 items-center justify-between rounded-xl px-2.5 transition-all duration-300 ease-out ${
             menuClasses.item
-          } ${level === 0 ? "py-3" : "py-2.5"}`
+          } ${level === 0 ? "py-2.5" : "py-2"}`
         }
       >
         {() => (
           <>
             <div className={`flex min-w-0 flex-1 items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-              {Icon ? (
-                <span
-                  className={`flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${menuClasses.icon}`}
-                >
-                  <Icon size={level === 0 ? 18 : 17} strokeWidth={isInActiveBranch ? 2.4 : 2} />
-                </span>
-              ) : null}
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${menuClasses.icon}`}
+              >
+                <Icon size={level === 0 ? 18 : 17} strokeWidth={isInActiveBranch ? 2.4 : 2} />
+              </span>
 
               {!isCollapsed ? (
                 <span
@@ -264,28 +423,32 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
             </div>
 
             {!isCollapsed && hasChildren ? (
-              <ChevronDown
-                size={15}
-                className={`shrink-0 transition-all duration-300 ${menuClasses.chevron} ${
-                  open ? "rotate-180" : ""
+              <span
+                className={`ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                  isInActiveBranch
+                    ? "border-[#bcd0ff] bg-[#eef3ff] text-[#1737d6]"
+                    : "border-slate-300 bg-white text-slate-700 group-hover:border-slate-400 group-hover:bg-slate-50"
                 }`}
-              />
+                aria-hidden="true"
+              >
+                <ExpandIcon size={15} strokeWidth={2.4} />
+              </span>
             ) : null}
           </>
         )}
       </NavLink>
 
-      {!isCollapsed && hasChildren ? (
+      {!isCollapsed && visibleChildren.length > 0 ? (
         <div
           className={`grid overflow-hidden transition-all duration-300 ease-out ${
-            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            displayOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           }`}
         >
           <div className="min-h-0">
-            <div className="relative ml-2.5 mt-1.5 space-y-1 rounded-[20px] border border-slate-200/90 bg-[#fbfcff] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+            <div className="relative ml-2 mt-1 space-y-1 rounded-xl border border-slate-200/90 bg-[#fbfcff] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
               <div className="absolute bottom-3 left-3.5 top-3 w-px bg-gradient-to-b from-[#dbe4ff] via-slate-200 to-transparent" />
               <div className="space-y-1 pl-2.5">
-                {menu.children.map((child) => (
+                {visibleChildren.map((child) => (
                   <MenuItem
                     key={child.id}
                     menu={child}
@@ -317,46 +480,46 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
 
   return (
     <aside
-      className={`relative flex h-screen flex-col border-r border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] shadow-[14px_0_32px_rgba(15,23,42,0.045)] transition-all duration-300 ${
-        isCollapsed ? "w-[94px]" : "w-[278px]"
+      className={`relative flex h-[calc(100vh-24px)] flex-col overflow-hidden rounded-l-[18px] border-y border-l border-r border-slate-200 bg-[#fbfcfe] transition-all duration-300 ${
+        isCollapsed ? "w-[74px]" : "w-[260px]"
       }`}
     >
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-6 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.12)]"
+        className="absolute right-2 top-4 z-30 flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50"
       >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        {isCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
       </button>
 
-      <div className={`px-4 pb-3 pt-4 ${isCollapsed ? "px-3.5" : ""}`}>
-        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-4"}`}>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#2952ff_0%,#1737d6_100%)] text-lg font-black text-white shadow-[0_14px_26px_rgba(41,82,255,0.18)]">
+      <div className={`px-4 pb-3 pt-3 ${isCollapsed ? "px-2" : ""}`}>
+        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0f766e] text-sm font-black text-white">
             E
           </div>
           {!isCollapsed ? (
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7c90c4]">
-                Dashboard
-              </p>
-              <h1 className="mt-0.5 text-[24px] font-black tracking-[-0.05em] text-slate-900">
-                EXIMINQ
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-bold text-slate-900">
+                Cloud Desk
               </h1>
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
+                Eximinq Workspace
+              </p>
             </div>
           ) : null}
         </div>
       </div>
 
       {!isCollapsed ? (
-        <div className="px-4 pb-2 pt-1">
-          <div className="rounded-full border border-slate-200 bg-white px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.03)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-              Workspace Navigation
+        <div className="px-4 pb-2">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Main Menu
             </p>
           </div>
         </div>
       ) : null}
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-1.5 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto px-3 pb-3 pt-1 custom-scrollbar">
         <div className="space-y-1">
           {sidebarMenus.map((menu) => (
             <MenuItem key={menu.id} menu={menu} isCollapsed={isCollapsed} />
@@ -364,9 +527,9 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 px-3 pb-3.5 pt-3">
+      <div className="border-t border-slate-200 px-2.5 pb-3 pt-2.5">
         <div
-          className={`rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-3 shadow-[0_8px_20px_rgba(15,23,42,0.04)] ${
+          className={`rounded-xl border border-slate-200 bg-white p-2.5 ${
             isCollapsed ? "flex justify-center" : ""
           }`}
         >
@@ -377,14 +540,14 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
                 `https://ui-avatars.com/api/?name=${user?.name || "U"}&background=2952ff&color=fff`
               }
               alt="profile"
-              className="h-10 w-10 rounded-2xl border border-white object-cover shadow-[0_8px_20px_rgba(41,82,255,0.14)]"
+              className="h-9 w-9 rounded-xl border border-white object-cover shadow-[0_8px_18px_rgba(41,82,255,0.12)]"
             />
             {!isCollapsed ? (
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-xs font-semibold text-slate-900">
                   {user?.name || "User Name"}
                 </p>
-                <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.22em] text-[#7c90c4]">
+                <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#7c90c4]">
                   {user?.role || "Role"}
                 </p>
               </div>
@@ -397,7 +560,7 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
             logout();
             navigate("/login");
           }}
-          className={`mt-3 flex w-full items-center rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 ${
+          className={`mt-2 flex w-full items-center rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 ${
             isCollapsed ? "justify-center" : "gap-3"
           }`}
         >

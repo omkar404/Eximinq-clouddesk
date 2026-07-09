@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
-import { Plus } from "lucide-react";
+import { Bell, Maximize2, Plus, Search, Settings2 } from "lucide-react";
 import { getWallet } from "../../services/walletService";
 
 function formatHeaderBalance(value) {
@@ -69,53 +69,75 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 px-5 py-3 backdrop-blur-xl md:px-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
-            Dashboard Workspace
-          </p>
-          <h1 className="mt-1 truncate text-[1.5rem] font-black tracking-[-0.04em] text-slate-900 md:text-[1.7rem]">
+    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-[#fbfcfe] px-3 py-2 backdrop-blur-xl md:px-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="hidden min-w-0 md:block">
+          <h1 className="truncate text-sm font-semibold text-slate-900">
             {getTitle()}
           </h1>
+          <p className="mt-0.5 text-[10px] font-medium text-slate-400">
+            Manage your workspace, requests, and balances
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
+        <div className="mx-auto flex min-w-[220px] max-w-[430px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+          <Search size={14} />
+          <input
+            aria-label="Search"
+            placeholder="Search..."
+            className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
+          />
+          <span className="hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-400 sm:inline">
+            ⌘ K
+          </span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="hidden rounded-lg border border-slate-200 bg-white p-0.5 sm:flex">
             <button
               type="button"
               onClick={() => navigate("/client/wallet-credit")}
-              className="rounded-xl bg-[#1f4fff] px-4 py-1.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(31,79,255,0.22)]"
+              className="rounded-md bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-white"
             >
               Wallet
             </button>
             <button
               type="button"
-              className="px-4 py-1.5 text-sm font-semibold text-slate-400"
+              className="px-2.5 py-1.5 text-[11px] font-semibold text-slate-400"
             >
               Credit Line
             </button>
           </div>
 
-          <div className="flex items-center gap-3 rounded-[22px] border border-[#d8e4ff] bg-[linear-gradient(135deg,#f8fbff_0%,#eef4ff_100%)] pl-3 pr-1.5 py-1.5 shadow-[0_10px_24px_rgba(31,79,255,0.06)]">
+          <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-2.5 pr-1.5 lg:flex">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f96d1]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">
                 Balance
               </span>
-              <span className="text-sm font-black text-[#1f4fff]">
+              <span className="text-[11px] font-bold text-slate-900">
                 {isWalletPage ? formatHeaderBalance(walletBalance) : "Rs. 42,500"}
               </span>
             </div>
             <button
               type="button"
               onClick={() => navigate("/client/wallet-credit#add-credit")}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f4fff] text-white shadow-[0_8px_18px_rgba(31,79,255,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#173fd7]"
+              className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:-translate-y-0.5"
             >
-              <Plus size={17} strokeWidth={3} />
+              <Plus size={15} strokeWidth={3} />
             </button>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white bg-white text-sm font-black text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+          <button className="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 md:flex">
+            <Settings2 size={14} />
+          </button>
+          <button className="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 md:flex">
+            <Maximize2 size={14} />
+          </button>
+          <button className="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 sm:flex">
+            <Bell size={14} />
+          </button>
+
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-black text-slate-700">
             {user?.name?.charAt(0).toUpperCase() || "A"}
           </div>
         </div>

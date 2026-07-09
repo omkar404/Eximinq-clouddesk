@@ -9,6 +9,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
   CreditCard,
   Download,
   Factory,
@@ -269,6 +270,57 @@ const COMPLIANCE_SERVICES = [
   }
 ];
 
+const CATEGORY_SERVICE_GROUPS = {
+  licensing: [
+    { id: "advance-auth", title: "Advance Authorisation", subtitle: "DGFT authorisation workflow", caption: "End-to-end support for advance authorisation filing.", icon: FileCheck2 },
+    { id: "epcg", title: "EPCG License", subtitle: "Capital goods licensing", caption: "Application, documentation, and closure support.", icon: Factory },
+    { id: "star", title: "Star Export House", subtitle: "Exporter recognition", caption: "Status holder filing and supporting documentation.", icon: Globe },
+    { id: "rex", title: "REX Registration", subtitle: "Exporter registration", caption: "REX onboarding and certification assistance.", icon: Stamp },
+    { id: "iec", title: "IEC Services", subtitle: "Importer exporter code", caption: "IEC application, modification, and update support.", icon: Building2 }
+  ],
+  registration: [
+    { id: "fssai", title: "FSSAI Registration", subtitle: "Food business compliance", caption: "Registration and licensing support for food imports.", icon: FileCheck2 },
+    { id: "bis", title: "BIS Registration", subtitle: "Product certification", caption: "BIS documentation and registration workflow.", icon: ShieldCheck },
+    { id: "cdsco", title: "CDSCO Registration", subtitle: "Drug and device onboarding", caption: "Regulatory registration support for controlled products.", icon: FileBadge2 },
+    { id: "aqcs", title: "AQCS & PQMS", subtitle: "Quarantine registration", caption: "Animal and plant quarantine support.", icon: Waves },
+    { id: "legal-metrology", title: "Legal Metrology", subtitle: "Packaged commodity setup", caption: "LMPC registration and documentation support.", icon: Scale }
+  ],
+  incentives: [
+    { id: "rodtep", title: "RoDTEP Claims", subtitle: "Export remission benefits", caption: "Claim preparation and reconciliation support.", icon: ReceiptText },
+    { id: "rosctl", title: "RoSCTL Claims", subtitle: "Textile incentive support", caption: "Scheme filing and claim documentation.", icon: Receipt },
+    { id: "duty", title: "Duty Drawback", subtitle: "Refund processing", caption: "Drawback claim review and filing support.", icon: CreditCard },
+    { id: "interest", title: "Interest Equalisation", subtitle: "Finance incentive", caption: "Eligibility review and claim assistance.", icon: Wallet },
+    { id: "igst", title: "IGST Refund", subtitle: "Export tax refund", caption: "Refund tracking and filing support.", icon: Download }
+  ],
+  "custom-filing": [
+    { id: "moowr", title: "MOOWR Filing", subtitle: "Warehouse manufacturing", caption: "MOOWR registration and filing workflow.", icon: Factory },
+    { id: "dpd", title: "DPD Registration", subtitle: "Direct port delivery", caption: "DPD onboarding and documentation support.", icon: Truck },
+    { id: "rmcc", title: "RMCC Support", subtitle: "Customs coordination", caption: "RMCC filing and response assistance.", icon: Shield },
+    { id: "svb", title: "SVB Filing", subtitle: "Valuation branch support", caption: "SVB documentation and submission workflow.", icon: Scale },
+    { id: "factory-stuffing", title: "Factory Stuffing", subtitle: "Export logistics filing", caption: "Permission and compliance documentation.", icon: PackageCheck }
+  ],
+  "dispute-resolution": [
+    { id: "dgft-relaxation", title: "DGFT Relaxation", subtitle: "Policy relaxation request", caption: "Representation drafting and filing support.", icon: FileText },
+    { id: "customs-defense", title: "Customs Defence", subtitle: "Customs notice support", caption: "Response and hearing documentation.", icon: Shield },
+    { id: "scn-reply", title: "SCN Reply", subtitle: "Show cause response", caption: "Drafting, evidence mapping, and submission support.", icon: ScrollText },
+    { id: "appeal-support", title: "Appeal Support", subtitle: "Dispute escalation", caption: "Appeal filing and documentation workflow.", icon: BriefcaseBusiness },
+    { id: "ca-certification", title: "CA Certification", subtitle: "Certified declarations", caption: "Chartered accountant certificate coordination.", icon: Building2 }
+  ],
+  "iso-trademark": [
+    { id: "iso", title: "ISO Certification", subtitle: "Quality certification", caption: "ISO documentation and audit coordination.", icon: FileCheck2 },
+    { id: "trademark", title: "Trademark Filing", subtitle: "Brand filing support", caption: "Trademark search, filing, and tracking workflow.", icon: Stamp },
+    { id: "brand-protection", title: "Brand Protection", subtitle: "IP protection support", caption: "Monitoring and response support for brand assets.", icon: ShieldCheck },
+    { id: "audit-support", title: "Audit Support", subtitle: "Certification readiness", caption: "Document readiness and gap review.", icon: ClipboardList }
+  ],
+  logistics: [
+    { id: "freight", title: "Freight Coordination", subtitle: "Shipment movement", caption: "Freight planning and coordination support.", icon: Truck },
+    { id: "port-operations", title: "Port Operations", subtitle: "Port handling support", caption: "Port process coordination and documentation.", icon: PackageCheck },
+    { id: "warehouse", title: "Warehouse Coordination", subtitle: "Storage workflow", caption: "Warehouse coordination and compliance support.", icon: Store },
+    { id: "shipment-tracking", title: "Shipment Tracking", subtitle: "Live movement updates", caption: "Tracking and exception management support.", icon: Globe },
+    { id: "documentation-desk", title: "Documentation Desk", subtitle: "Logistics paperwork", caption: "Shipping document review and preparation.", icon: FileSpreadsheet }
+  ]
+};
+
 function slugifySegment(value) {
   return String(value || "")
     .trim()
@@ -461,6 +513,33 @@ function ComplianceServiceCard({ service, isSelected, onSelect }) {
           Click Here
         </span>
         <ArrowRight size={18} className="text-[#2952ff]" />
+      </div>
+    </button>
+  );
+}
+
+function CategoryServiceCard({ service, onSelect }) {
+  const Icon = service.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(service)}
+      className="group flex min-h-[210px] flex-col justify-between rounded-[28px] border border-slate-200 bg-white p-6 text-left shadow-[0_16px_44px_rgba(15,23,42,0.045)] transition-all hover:-translate-y-1 hover:border-[#b9c8ff] hover:shadow-[0_24px_54px_rgba(41,82,255,0.12)]"
+    >
+      <div>
+        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-50 text-slate-400 transition group-hover:bg-[#eef3ff] group-hover:text-[#2952ff]">
+          <Icon size={26} />
+        </div>
+        <h3 className="mt-7 text-2xl font-black tracking-tight text-slate-950">
+          {service.title}
+        </h3>
+        <p className="mt-3 text-sm font-bold text-[#2952ff]">{service.subtitle}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{service.caption}</p>
+      </div>
+      <div className="mt-6 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.22em] text-[#2952ff]">
+        Click Here
+        <ArrowRight size={20} className="transition group-hover:translate-x-1" />
       </div>
     </button>
   );
@@ -1056,6 +1135,11 @@ export default function ServiceStore() {
     navigate(`/client/service-store/compliance/${service.id}`);
   };
 
+  const handleCategoryServiceSelect = service => {
+    const categoryPath = selectedCategory?.path || "/client/service-store";
+    navigate(`${categoryPath}/${service.id}`);
+  };
+
   const openSelectedComplianceService = () => {
     if (!selectedService) {
       return;
@@ -1175,6 +1259,8 @@ export default function ServiceStore() {
   }
 
   if (selectedCategory) {
+    const categoryServices = CATEGORY_SERVICE_GROUPS[selectedCategory.id] || [];
+
     return (
       <div className="min-h-[calc(100vh-7rem)]">
         <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
@@ -1191,19 +1277,27 @@ export default function ServiceStore() {
 
               <div className="mt-8">
                 <p className="text-sm font-black uppercase tracking-[0.28em] text-slate-400">
-                  Service Store Parent Menu
+                  {selectedCategory.eyebrow}
                 </p>
                 <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
                   {selectedCategory.title}
                 </h1>
                 <p className="mt-3 text-sm font-bold uppercase tracking-[0.22em] text-[#2952ff]/55">
-                  Parent category navigation is now wired
+                  {selectedCategory.description}
                 </p>
                 <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-500">
-                  Clicking the parent menu now correctly navigates to this section.
-                  Child workflows inside {selectedCategory.title} can be connected in the
-                  next phase.
+                  Select a service from this category to continue with the workflow.
                 </p>
+              </div>
+
+              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {categoryServices.map(service => (
+                  <CategoryServiceCard
+                    key={service.id}
+                    service={service}
+                    onSelect={handleCategoryServiceSelect}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -1221,11 +1315,10 @@ export default function ServiceStore() {
               Service Store
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-              Choose a Parent Menu
+              Service Store
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-              Start from the main Service Store parent menu you want to open. Clicking a
-              parent card takes the user into that section.
+              Browse the available service categories and open the right workflow from one place.
             </p>
           </div>
 
