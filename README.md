@@ -1,16 +1,18 @@
-# React + Vite
+# Eximinq CloudDesk
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React/Vite CloudDesk dashboard with a local Express API and PostgreSQL persistence.
 
-Currently, two official plugins are available:
+## Local setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env` and set the database and application secrets.
+3. Create the PostgreSQL database/role, then run `npm run db:migrate` and `npm run db:seed`.
+4. Start the API with `npm run dev:api`.
+5. In a second terminal, start the frontend with `npm run dev`.
 
-## React Compiler
+Frontend: `http://localhost:5173`  
+API health: `http://localhost:4001/health`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## pgAdmin connection
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Register a server with host `localhost`, port `5432`, maintenance database `eximinq_clouddesk_app`, and the application database user from `.env`. Do not commit `.env`.

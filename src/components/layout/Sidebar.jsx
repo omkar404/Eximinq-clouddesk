@@ -279,10 +279,10 @@ function getMenuClasses({ level, isLeafActive, isDirectParentActive, hasActiveCh
     return {
       item:
         level === 0
-          ? "bg-[#eef3ff] text-[#1737d6] border border-[#d8e2ff]"
-          : "bg-[#f5f8ff] text-[#1737d6] border border-[#dfe7ff]",
-      icon: "text-[#2952ff] bg-white",
-      chevron: "text-[#2952ff]",
+          ? "bg-white/10 text-white border border-white/10"
+          : "bg-white/8 text-white border border-white/10",
+      icon: "text-[#91a8ff] bg-white/10",
+      chevron: "text-[#91a8ff]",
       label: "font-semibold"
     };
   }
@@ -291,10 +291,10 @@ function getMenuClasses({ level, isLeafActive, isDirectParentActive, hasActiveCh
     return {
       item:
         level === 0
-          ? "bg-[#f8faff] text-slate-900 border border-slate-200"
-          : "bg-white text-slate-900 border border-slate-200",
-      icon: "text-[#2952ff] bg-[#eef3ff]",
-      chevron: "text-[#2952ff]",
+          ? "bg-white/8 text-white border border-white/10"
+          : "bg-white/6 text-white border border-white/8",
+      icon: "text-[#91a8ff] bg-white/10",
+      chevron: "text-[#91a8ff]",
       label: "font-medium"
     };
   }
@@ -302,13 +302,13 @@ function getMenuClasses({ level, isLeafActive, isDirectParentActive, hasActiveCh
   return {
     item:
       level === 0
-        ? "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-        : "text-slate-500 hover:bg-white hover:text-slate-900",
+        ? "text-slate-400 hover:bg-white/8 hover:text-white"
+        : "text-slate-400 hover:bg-white/8 hover:text-white",
     icon:
       level === 0
-        ? "text-slate-400 bg-slate-50 group-hover:text-slate-700"
-        : "text-slate-400 bg-slate-50 group-hover:text-slate-700",
-    chevron: "text-slate-400 group-hover:text-slate-700",
+        ? "text-slate-500 bg-white/5 group-hover:bg-white/10 group-hover:text-white"
+        : "text-slate-500 bg-white/5 group-hover:bg-white/10 group-hover:text-white",
+    chevron: "text-slate-500 group-hover:text-white",
     label: "font-medium"
   };
 }
@@ -426,8 +426,8 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
               <span
                 className={`ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
                   isInActiveBranch
-                    ? "border-[#bcd0ff] bg-[#eef3ff] text-[#1737d6]"
-                    : "border-slate-300 bg-white text-slate-700 group-hover:border-slate-400 group-hover:bg-slate-50"
+                    ? "border-white/15 bg-white/10 text-white"
+                    : "border-white/10 bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white"
                 }`}
                 aria-hidden="true"
               >
@@ -445,8 +445,8 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
           }`}
         >
           <div className="min-h-0">
-            <div className="relative ml-2 mt-1 space-y-1 rounded-xl border border-slate-200/90 bg-[#fbfcff] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-              <div className="absolute bottom-3 left-3.5 top-3 w-px bg-gradient-to-b from-[#dbe4ff] via-slate-200 to-transparent" />
+            <div className="relative ml-2 mt-1 space-y-1 rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
+              <div className="absolute bottom-3 left-3.5 top-3 w-px bg-gradient-to-b from-[#637ff7]/60 via-white/10 to-transparent" />
               <div className="space-y-1 pl-2.5">
                 {visibleChildren.map((child) => (
                   <MenuItem
@@ -465,13 +465,13 @@ function MenuItem({ menu, isCollapsed, level = 0 }) {
   );
 }
 
-export default function Sidebar({ isCollapsed = false, onToggle }) {
+export default function Sidebar({ isCollapsed = false, isMobileOpen = false, onToggle }) {
   const { menus, user, logout, onboarding } = useAuth();
   const navigate = useNavigate();
 
   const sidebarMenus =
     user?.role === "CLIENT" && onboarding?.companyProfileCompleted !== true
-      ? [QUICK_FORM_MENU, ...(menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path)]
+      ? [QUICK_FORM_MENU]
       : (menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path);
 
   if (!sidebarMenus.length) {
@@ -480,25 +480,27 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
 
   return (
     <aside
-      className={`relative flex h-[calc(100vh-24px)] flex-col overflow-hidden rounded-l-[18px] border-y border-l border-r border-slate-200 bg-[#fbfcfe] transition-all duration-300 ${
+      className={`premium-sidebar mobile-sidebar-panel relative flex h-[calc(100vh-24px)] flex-col overflow-hidden transition-all duration-300 ${
+        isMobileOpen ? "is-open" : ""
+      } ${
         isCollapsed ? "w-[74px]" : "w-[260px]"
       }`}
     >
       <button
         onClick={onToggle}
-        className="absolute right-2 top-4 z-30 flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50"
+        className="absolute right-2 top-4 z-30 hidden h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-white/70 transition-all hover:bg-white/20 hover:text-white md:flex"
       >
         {isCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
       </button>
 
       <div className={`px-4 pb-3 pt-3 ${isCollapsed ? "px-2" : ""}`}>
         <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0f766e] text-sm font-black text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#5b7cff] to-[#3157ff] text-sm font-black text-white shadow-[0_10px_24px_rgba(49,87,255,.35)]">
             E
           </div>
           {!isCollapsed ? (
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold text-slate-900">
+              <h1 className="truncate text-sm font-bold text-white">
                 Cloud Desk
               </h1>
               <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
@@ -511,8 +513,8 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
 
       {!isCollapsed ? (
         <div className="px-4 pb-2">
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+          <div className="rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
               Main Menu
             </p>
           </div>
@@ -527,9 +529,9 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 px-2.5 pb-3 pt-2.5">
+      <div className="border-t border-white/8 px-2.5 pb-3 pt-2.5">
         <div
-          className={`rounded-xl border border-slate-200 bg-white p-2.5 ${
+          className={`rounded-xl border border-white/8 bg-white/[0.06] p-2.5 ${
             isCollapsed ? "flex justify-center" : ""
           }`}
         >
@@ -544,7 +546,7 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
             />
             {!isCollapsed ? (
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-slate-900">
+                <p className="truncate text-xs font-semibold text-white">
                   {user?.name || "User Name"}
                 </p>
                 <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#7c90c4]">
@@ -560,7 +562,7 @@ export default function Sidebar({ isCollapsed = false, onToggle }) {
             logout();
             navigate("/login");
           }}
-          className={`mt-2 flex w-full items-center rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 ${
+          className={`mt-2 flex w-full items-center rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-400 transition-all hover:bg-white/8 hover:text-white ${
             isCollapsed ? "justify-center" : "gap-3"
           }`}
         >

@@ -8,6 +8,8 @@ import {
   ReceiptText,
   Search,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   WalletCards
 } from "lucide-react";
 import { createElement } from "react";
@@ -55,13 +57,13 @@ const statusClasses = {
 
 function SummaryCard({ icon, value, label, className }) {
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br ${className} p-4 shadow-sm`}>
+    <div className={`premium-metric relative overflow-hidden bg-gradient-to-br ${className} p-5`}>
       <div className="absolute inset-0 bg-white/35 backdrop-blur-[1px]" />
       <div className="relative">
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/75 text-slate-600">
           {createElement(icon, { size: 14 })}
         </div>
-        <p className="mt-8 text-lg font-bold text-slate-950">{value}</p>
+        <p className="mt-8 text-2xl font-black tracking-[-0.04em] text-slate-950">{value}</p>
         <p className="mt-1 text-[11px] font-medium text-slate-600">{label}</p>
       </div>
     </div>
@@ -83,17 +85,23 @@ export default function ClientCommandCenter() {
     <div className="dashboard-page dashboard-console">
       <OnboardingNote />
 
-      <section className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-base font-bold text-slate-950">Requests</h1>
-          <p className="mt-1 text-[11px] font-medium text-slate-400">
-            Track filings, documents, receipts, and compliance status
-          </p>
+      <section className="dashboard-hero relative overflow-hidden p-6 md:p-8">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-400/15 blur-3xl" />
+        <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.14em] text-blue-700">
+              <Sparkles size={13} /> Live trade workspace
+            </div>
+            <h1 className="premium-page-title">Your operations, beautifully in control.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              Track every filing, document, payment, and compliance milestone from one intelligent command center.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button className="premium-button premium-button-secondary"><ReceiptText size={15} /> Match receipts</button>
+            <button className="premium-button premium-button-primary"><Plus size={16} /> New request</button>
+          </div>
         </div>
-        <button className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 shadow-sm">
-          <ReceiptText size={13} />
-          Match Receipts
-        </button>
       </section>
 
       <section className="grid gap-3 lg:grid-cols-3">
@@ -105,10 +113,12 @@ export default function ClientCommandCenter() {
       <section className="dashboard-table-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2.5">
           <div>
-            <h2 className="text-sm font-bold text-slate-950">Request Ledger</h2>
+            <p className="premium-kicker">Operations</p>
+            <h2 className="mt-1 text-base font-bold text-slate-950">Request ledger</h2>
             <p className="mt-0.5 text-[10px] font-medium text-slate-400">10 latest records</p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 hidden items-center gap-1 text-[10px] font-bold text-emerald-600 md:inline-flex"><TrendingUp size={13}/> Updated live</span>
             <FilterButton>Data Views</FilterButton>
             <FilterButton icon={Filter}>Filters</FilterButton>
             <FilterButton>Date</FilterButton>

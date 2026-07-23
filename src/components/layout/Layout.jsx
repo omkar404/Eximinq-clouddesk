@@ -5,16 +5,26 @@ import { useState } from "react";
 
 export default function Layout() {
   const [isPrimaryCollapsed, setIsPrimaryCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#e7e8eb] p-3 text-slate-900">
+    <div className="app-shell text-slate-900">
+      {isMobileOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="mobile-sidebar-backdrop"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      ) : null}
       <Sidebar
         isCollapsed={isPrimaryCollapsed}
+        isMobileOpen={isMobileOpen}
         onToggle={() => setIsPrimaryCollapsed((prevState) => !prevState)}
       />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[18px] border-y border-r border-slate-200 bg-[#f8fafc]">
-        <Header />
-        <main className="min-w-0 flex-1 overflow-y-auto px-3 pb-3 pt-3 custom-scrollbar">
+      <div className="app-workspace">
+        <Header onOpenSidebar={() => setIsMobileOpen(true)} />
+        <main className="app-content custom-scrollbar">
           <Outlet />
         </main>
       </div>

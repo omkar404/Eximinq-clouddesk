@@ -17,7 +17,9 @@ export default function MenuPlaceholder() {
   const approvalPending = onboarding?.profileApprovalStatus === "submitted";
 
   return (
-    <div className="dashboard-hero p-6 md:p-8">
+    <div className="dashboard-page">
+      <div className="dashboard-hero relative overflow-hidden p-6 md:p-9">
+      <div className="absolute -right-10 -top-14 h-48 w-48 rounded-full bg-blue-300/20 blur-3xl" />
       <div className="flex items-start gap-4">
         <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#eef3ff] text-[#101eb9] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <Sparkles size={24} />
@@ -30,8 +32,7 @@ export default function MenuPlaceholder() {
             {title}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            This menu is accessible, but the full working screen for this section has not
-            been wired yet in the dashboard.
+            Your dedicated {title.toLowerCase()} workspace is ready for connected data and operational tools.
           </p>
         </div>
       </div>
@@ -76,6 +77,19 @@ export default function MenuPlaceholder() {
           )}
         </div>
       ) : null}
+      </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        {["Workspace overview", "Recent activity", "Smart recommendations"].map((label, index) => (
+          <article key={label} className="premium-metric min-h-40 p-5">
+            <p className="premium-kicker">0{index + 1}</p>
+            <h2 className="mt-3 text-base font-bold text-slate-900">{label}</h2>
+            <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-gradient-to-r from-[#3157ff] to-[#60a5fa]" style={{ width: `${48 + index * 17}%` }} />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">Connect this module to begin seeing live operational insights.</p>
+          </article>
+        ))}
+      </section>
     </div>
   );
 }

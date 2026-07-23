@@ -53,6 +53,11 @@ export function AuthProvider({ children }) {
       setUser(session.user);
     }
 
+    if (session?.menus) {
+      localStorage.setItem("menus", JSON.stringify(session.menus));
+      setMenus(session.menus);
+    }
+
     localStorage.setItem("onboarding", JSON.stringify(session?.onboarding || null));
     setOnboarding(session?.onboarding || null);
 
