@@ -23,6 +23,7 @@ import {
     Landmark,
     ScrollText,
     FileBadge2,
+    Users,
 } from "lucide-react";
 
 export const iconMap = {
@@ -147,10 +148,11 @@ export const iconMap = {
     "/admin/users": User,
     "/admin/menus": Folder,
     "/admin/company-profile": Settings,
+    "/admin/service-requests": ClipboardList,
     "/clients": Building,
     "/admin/clients": Building,
     "/admin/client-management": Building,
-    "/admin/workforce": Shield,
+    "/admin/workforce": Users,
     "/admin/request-board": Activity,
     "/admin/smart-vault": Vault,
     "/admin/wallet-credit": Wallet,

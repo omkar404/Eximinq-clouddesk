@@ -5,6 +5,8 @@ import { pool } from "./pool.js";
 
 const email = (process.env.ADMIN_EMAIL || "admin@eximinq.com").toLowerCase();
 const password = process.env.ADMIN_PASSWORD;
+const agentEmail = (process.env.AGENT_EMAIL || "agent@eximinq.com").toLowerCase();
+const agentPassword = process.env.AGENT_PASSWORD || "Agent@12345!";
 
 if (!password || password.length < 10) {
   throw new Error("ADMIN_PASSWORD must contain at least 10 characters");
@@ -12,6 +14,8 @@ if (!password || password.length < 10) {
 
 const menus = [
   ["Command Center", "/admin/command-center", 10],
+  ["Workforce", "/admin/workforce", 12],
+  ["Request Board", "/admin/service-requests", 15],
   ["User Management", "/admin/users", 20],
   ["Menu Management", "/admin/menus", 30],
   ["Client Management", "/admin/clients", 40],
@@ -26,6 +30,8 @@ const menus = [
   ["Smart Vault", "/client/smart-vault", 180],
   ["Wallet", "/client/wallet-credit", 190],
   ["Company Profile", "/client/company-profile", 200]
+  ,["My Dashboard", "/agent/dashboard", 210]
+  ,["My Tasks", "/agent/tasks", 220]
 ];
 
 const client = await pool.connect();
@@ -50,12 +56,25 @@ try {
     "INSERT INTO role_menus(role_id, menu_id) SELECT $1,id FROM menus WHERE path LIKE '/client/%' AND path <> '/client/company-profile-setup' ON CONFLICT DO NOTHING",
     [clientRole.rows[0].id]
   );
+  const agentRole = await client.query("SELECT id FROM roles WHERE name='AGENT'");
+  await client.query(
+    "INSERT INTO role_menus(role_id, menu_id) SELECT $1,id FROM menus WHERE path LIKE '/agent/%' ON CONFLICT DO NOTHING",
+    [agentRole.rows[0].id]
+  );
   const hash = await bcrypt.hash(password, 12);
   await client.query(
     `INSERT INTO users(name,email,password_hash,user_code,role_id)
      VALUES('CloudDesk Administrator',$1,$2,'ADM-0001',$3)
      ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash, role_id=EXCLUDED.role_id, is_active=TRUE, updated_at=NOW()`,
     [email, hash, role.rows[0].id]
+  );
+  const agentHash = await bcrypt.hash(agentPassword, 12);
+  await client.query(
+    `INSERT INTO users(name,email,password_hash,user_code,role_id)
+     VALUES('CloudDesk Agent',$1,$2,'AGT-0001',$3)
+     ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash,
+       role_id=EXCLUDED.role_id,is_active=TRUE,updated_at=NOW()`,
+    [agentEmail, agentHash, agentRole.rows[0].id]
   );
   await client.query("COMMIT");
   console.log(`Admin account is ready: ${email}`);

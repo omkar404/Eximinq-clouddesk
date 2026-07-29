@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { Bell, Menu, Plus, Search, Sparkles } from "lucide-react";
@@ -17,14 +17,13 @@ export default function Header({ onOpenSidebar }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [walletBalance, setWalletBalance] = useState(null);
-
-  const isWalletPage = useMemo(
-    () => location.pathname === "/client/wallet-credit",
-    [location.pathname]
-  );
+  const [creditLineBalance, setCreditLineBalance] = useState(null);
+  const isCreditLineActive =
+    location.pathname === "/client/wallet-credit" &&
+    location.hash === "#credit-line";
 
   useEffect(() => {
-    if (!isWalletPage) {
+    if (user?.role !== "CLIENT") {
       return undefined;
     }
 
@@ -34,11 +33,13 @@ export default function Header({ onOpenSidebar }) {
       .then((wallet) => {
         if (isMounted) {
           setWalletBalance(wallet?.balance ?? null);
+          setCreditLineBalance(wallet?.credit_line ?? null);
         }
       })
       .catch(() => {
         if (isMounted) {
           setWalletBalance(null);
+          setCreditLineBalance(null);
         }
       });
 
@@ -48,6 +49,7 @@ export default function Header({ onOpenSidebar }) {
       }
 
       setWalletBalance(event.detail?.balance ?? null);
+      setCreditLineBalance(event.detail?.creditLine ?? null);
     };
 
     window.addEventListener("wallet:updated", handleWalletUpdated);
@@ -56,7 +58,7 @@ export default function Header({ onOpenSidebar }) {
       isMounted = false;
       window.removeEventListener("wallet:updated", handleWalletUpdated);
     };
-  }, [isWalletPage]);
+  }, [user?.role]);
 
   const getTitle = () => {
     const path = location.pathname.split("/").filter(Boolean).pop();
@@ -104,13 +106,23 @@ export default function Header({ onOpenSidebar }) {
             <button
               type="button"
               onClick={() => navigate("/client/wallet-credit")}
-              className="rounded-lg bg-slate-950 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm"
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
+                isCreditLineActive
+                  ? "text-slate-500 hover:text-slate-800"
+                  : "bg-slate-950 text-white shadow-sm"
+              }`}
             >
               Wallet
             </button>
             <button
               type="button"
-              className="px-2.5 py-1.5 text-[11px] font-semibold text-slate-400"
+              onClick={() => navigate("/client/wallet-credit#credit-line")}
+              title={`Available credit: ${formatHeaderBalance(creditLineBalance)}`}
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
+                isCreditLineActive
+                  ? "bg-violet-600 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
             >
               Credit Line
             </button>
@@ -122,7 +134,7 @@ export default function Header({ onOpenSidebar }) {
                 Balance
               </span>
               <span className="text-[11px] font-bold text-slate-900">
-                {isWalletPage ? formatHeaderBalance(walletBalance) : "Rs. 42,500"}
+                {user?.role === "CLIENT" ? formatHeaderBalance(walletBalance) : "--"}
               </span>
             </div>
             <button

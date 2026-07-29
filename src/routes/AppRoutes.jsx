@@ -14,9 +14,13 @@ import UserManagement from "../pages/admin/UserManagement";
 import MenuManagement from "../pages/admin/MenuManagement";
 import ClientManagement from "../pages/admin/ClientManagement";
 import AdminCompanyProfiles from "../pages/admin/AdminCompanyProfiles";
+import AdminServiceRequests from "../pages/admin/AdminServiceRequests";
+import AdminWorkforce from "../pages/admin/AdminWorkforce";
 import ClientCommandCenter from "../pages/client/ClientCommandCenter";
 import ServiceStore from "../pages/client/ServiceStore";
 import WalletCredit from "../pages/client/WalletCredit";
+import ClientTrackRequests from "../pages/client/ClientTrackRequests";
+import AgentTasks from "../pages/agent/AgentTasks";
 import MenuPlaceholder from "../pages/MenuPlaceholder";
 import Unauthorized from "../pages/Unauthorized";
 
@@ -124,6 +128,14 @@ export default function AppRoutes() {
             Component = <CompanyProfile />;
           } else if (menu.path === "/admin/company-profile") {
             Component = <AdminCompanyProfiles />;
+          } else if (menu.path === "/admin/service-requests") {
+            Component = <AdminServiceRequests />;
+          } else if (menu.path === "/admin/workforce") {
+            Component = <AdminWorkforce />;
+          } else if (menu.path === "/client/track-requests") {
+            Component = <ClientTrackRequests />;
+          } else if (menu.path === "/agent/tasks" || menu.path === "/agent/dashboard") {
+            Component = <AgentTasks />;
           } else if (menu.path === "/client/wallet-credit") {
             Component = <WalletCredit />;
           } else {

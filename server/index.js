@@ -7,6 +7,13 @@ import cors from "cors";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { pool } from "./database/pool.js";
+import { createCertificateOfOriginRouter } from "./routes/certificateOfOrigin.routes.js";
+import { createFinanceRouter } from "./routes/finance.routes.js";
+import { createAdminServiceRequestRouter } from "./routes/adminServiceRequest.routes.js";
+import { createIemRegistrationRouter } from "./routes/iemRegistration.routes.js";
+import { createIndustrialLicenseRouter } from "./routes/industrialLicense.routes.js";
+import { createRequestWorkflowRouters } from "./routes/requestWorkflow.routes.js";
+import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4001);
@@ -171,6 +178,11 @@ function requireAdmin(req, res, next) {
   if (req.user.role !== "ADMIN") return res.status(403).json({ message: "Admin access required" });
   next();
 }
+
+const requireRole = (role) => (req, res, next) => {
+  if (req.user.role !== role) return res.status(403).json({ message: `${role} access required` });
+  next();
+};
 
 app.get("/health", async (_req, res, next) => {
   try {
@@ -382,10 +394,36 @@ app.post("/auth/register", requireAuth, requireAdmin, async (req, res, next) => 
   }
 });
 
+app.use(
+  "/service-store/certificate-of-origin",
+  createCertificateOfOriginRouter({ requireAuth })
+);
+app.use(
+  "/service-store/iem-registration",
+  createIemRegistrationRouter({ requireAuth })
+);
+app.use(
+  "/service-store/industrial-licence",
+  createIndustrialLicenseRouter({ requireAuth })
+);
+app.use("/auth/wallet", createFinanceRouter({ requireAuth }));
+app.use("/auth/admin/dashboard", createAdminDashboardRouter({ requireAuth, requireAdmin }));
+app.use(
+  "/admin/service-requests",
+  createAdminServiceRequestRouter({ requireAuth, requireAdmin })
+);
+const workflowRouters = createRequestWorkflowRouters({ requireAuth, requireRole });
+app.use("/client/track-requests", workflowRouters.client);
+app.use("/admin/workflow-requests", workflowRouters.admin);
+app.use("/agent/tasks", workflowRouters.agent);
+
 app.use((err, _req, res, next) => {
   void next;
   console.error(err);
-  res.status(500).json({ message: "Internal server error" });
+  res.status(err.status || 500).json({
+    message: err.status ? err.message : "Internal server error",
+    ...(err.details ? { errors: err.details } : {})
+  });
 });
 
 const server = app.listen(port, () => console.log(`CloudDesk API listening at http://localhost:${port}`));

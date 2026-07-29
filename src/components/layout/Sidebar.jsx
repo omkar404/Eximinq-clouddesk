@@ -480,7 +480,7 @@ export default function Sidebar({ isCollapsed = false, isMobileOpen = false, onT
 
   return (
     <aside
-      className={`premium-sidebar mobile-sidebar-panel relative flex h-[calc(100vh-24px)] flex-col overflow-hidden transition-all duration-300 ${
+      className={`premium-sidebar mobile-sidebar-panel relative flex h-full min-h-0 self-stretch flex-col overflow-hidden transition-all duration-300 ${
         isMobileOpen ? "is-open" : ""
       } ${
         isCollapsed ? "w-[74px]" : "w-[260px]"

@@ -1,161 +1,193 @@
 import { useEffect, useMemo, useState } from "react";
+import { createElement } from "react";
 import { useLocation } from "react-router-dom";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  CircleDollarSign,
+  CalendarDays,
+  CheckCircle2,
+  CreditCard,
+  Download,
+  Filter,
   Plus,
+  ReceiptText,
   WalletCards,
   X
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { addWalletCredit, getWallet } from "../../services/walletService";
+import {
+  addCreditLineCredit,
+  addWalletCredit,
+  getWallet
+} from "../../services/walletService";
 
-const QUICK_AMOUNTS = [1000, 15000, 20000, 25000];
+const QUICK_AMOUNTS = [1000, 5000, 10000, 25000, 50000];
 
 function formatCurrency(value) {
-  if (value == null) {
-    return "--";
-  }
-
-  return `Rs. ${Number(value).toLocaleString("en-IN")}`;
+  return `₹${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  })}`;
 }
 
-function formatCredits(value) {
-  if (value == null) {
-    return "--";
-  }
+function nextBillingDate() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 5);
+  return next.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
 
-  return `${Number(value).toLocaleString("en-IN")} Credits`;
+function MetricCard({ icon: Icon, label, value, meta, tone = "emerald" }) {
+  const tones = {
+    emerald: "bg-emerald-50 text-emerald-600",
+    rose: "bg-rose-50 text-rose-500",
+    violet: "bg-violet-50 text-violet-600"
+  };
+
+  return (
+    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${tones[tone]}`}>
+          {createElement(Icon, { size: 20 })}
+        </span>
+        <p className="text-sm font-semibold text-slate-500">{label}</p>
+      </div>
+      <p className="mt-4 text-2xl font-black tracking-[-0.04em] text-slate-900">{value}</p>
+      <p className="mt-1 text-xs font-medium text-slate-400">{meta}</p>
+    </article>
+  );
 }
 
 export default function WalletCredit() {
   const location = useLocation();
-  const [wallet, setWallet] = useState(null);
+  const [activeAccount, setActiveAccount] = useState(
+    location.hash === "#credit-line" ? "CREDIT_LINE" : "WALLET"
+  );
+  const [account, setAccount] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAddCreditOpen, setIsAddCreditOpen] = useState(false);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [lastTopUp, setLastTopUp] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadAccount = async () => {
+    const data = await getWallet();
+    setAccount(data);
+    return data;
+  };
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadWallet() {
-      try {
-        const data = await getWallet();
-
-        if (!isMounted) {
-          return;
-        }
-
-        setWallet(data);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
+    let mounted = true;
+    getWallet()
+      .then((data) => {
+        if (mounted) setAccount(data);
+      })
+      .catch((error) => {
+        if (!mounted) return;
         Swal.fire({
           icon: "error",
-          title: "Unable to load wallet",
+          title: "Unable to load balances",
           text: error.response?.data?.message || "Please refresh and try again.",
           confirmButtonColor: "#2952ff"
         });
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadWallet();
-
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, []);
 
   useEffect(() => {
+    setActiveAccount(location.hash === "#credit-line" ? "CREDIT_LINE" : "WALLET");
     if (location.hash === "#add-credit") {
-      setIsAddCreditOpen(true);
+      setIsTopUpOpen(true);
     }
   }, [location.hash]);
 
   useEffect(() => {
-    if (!wallet) {
-      return;
-    }
-
+    if (!account) return;
     window.dispatchEvent(
       new CustomEvent("wallet:updated", {
         detail: {
-          balance: wallet.balance,
-          creditLine: wallet.credit_line ?? null
+          balance: account.balance,
+          creditLine: account.credit_line
         }
       })
     );
-  }, [wallet]);
+  }, [account]);
 
-  const walletBalance = wallet?.balance ?? null;
-  const creditLineBalance = wallet?.credit_line ?? null;
+  const transactions = useMemo(
+    () =>
+      (account?.transactions || []).filter(
+        (transaction) => transaction.accountType === activeAccount
+      ),
+    [account?.transactions, activeAccount]
+  );
 
-  const usageSummary = useMemo(() => {
-    if (walletBalance == null) {
-      return "--";
-    }
+  const currentMonthUsage = useMemo(() => {
+    const now = new Date();
+    return transactions
+      .filter((transaction) => {
+        const date = new Date(transaction.createdAt);
+        return (
+          transaction.transactionType === "DEBIT" &&
+          date.getMonth() === now.getMonth() &&
+          date.getFullYear() === now.getFullYear()
+        );
+      })
+      .reduce((total, transaction) => total + transaction.amount, 0);
+  }, [transactions]);
 
-    return walletBalance === 0 ? "Rs. 0" : "No usage tracked yet";
-  }, [walletBalance]);
+  const lastTopUp = transactions.find(
+    (transaction) => transaction.transactionType === "CREDIT"
+  );
+  const isWallet = activeAccount === "WALLET";
+  const availableBalance = isWallet ? account?.balance : account?.credit_line;
+  const totalLimit = Number(account?.credit_limit || 0);
+  const creditUsed = Math.max(0, totalLimit - Number(account?.credit_line || 0));
 
-  const handlePresetClick = (presetAmount) => {
-    setAmount(String(presetAmount));
+  const openTopUp = () => {
+    setAmount("");
+    setIsTopUpOpen(true);
   };
 
-  const handleCloseAddCredit = () => {
-    setIsAddCreditOpen(false);
-
-    if (window.location.hash === "#add-credit") {
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  };
-
-  const handleAddCredit = async (event) => {
+  const handleTopUp = async (event) => {
     event.preventDefault();
-
-    const parsedAmount = Number.parseInt(amount, 10);
-
-    if (!Number.isInteger(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       Swal.fire({
         icon: "warning",
         title: "Enter a valid amount",
-        text: "Please enter a positive amount to add wallet credit.",
+        text: "Top-up amount must be greater than zero.",
         confirmButtonColor: "#2952ff"
       });
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const response = await addWalletCredit(parsedAmount);
-      setWallet(response.wallet);
-      setLastTopUp({
-        amount: response.transaction?.amount ?? parsedAmount,
-        createdAt: response.transaction?.createdAt ?? new Date().toISOString()
-      });
+      setIsSubmitting(true);
+      if (isWallet) {
+        await addWalletCredit(parsedAmount);
+      } else {
+        await addCreditLineCredit(parsedAmount);
+      }
+      await loadAccount();
+      setIsTopUpOpen(false);
       setAmount("");
-      handleCloseAddCredit();
-
       Swal.fire({
         icon: "success",
-        title: "Credit added",
-        text: `${formatCurrency(parsedAmount)} has been added to the wallet.`,
+        title: `${isWallet ? "Wallet" : "Credit Line"} updated`,
+        text: `${formatCurrency(parsedAmount)} has been added successfully.`,
         confirmButtonColor: "#2952ff"
       });
     } catch (error) {
       Swal.fire({
         icon: "error",
-        title: "Unable to add credit",
+        title: "Top-up failed",
         text: error.response?.data?.message || "Please try again.",
         confirmButtonColor: "#2952ff"
       });
@@ -165,272 +197,211 @@ export default function WalletCredit() {
   };
 
   return (
-    <div className="space-y-5">
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_380px] 2xl:min-h-[calc(100vh-11.5rem)]">
-        <div className="grid gap-5">
-          <div
-            id="wallet-overview"
-            className="overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#16233e_0%,#253965_100%)] p-6 text-white shadow-[0_28px_60px_rgba(15,23,42,0.18)] md:p-7"
-          >
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <p className="text-sm font-bold text-blue-100/90">Total Available Balance</p>
-                <div className="mt-3 flex flex-wrap items-end gap-3">
-                  <h2 className="text-[2.4rem] font-black tracking-[-0.06em] md:text-[3rem]">
-                    {isLoading ? "..." : formatCredits(walletBalance)}
-                  </h2>
-                </div>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100/70">
-                  Add prepaid credits here before using paid services. Credit Line will stay empty until that workflow is implemented.
+    <div className="dashboard-page">
+      <div>
+        <div>
+          <p className="premium-kicker">Financial workspace</p>
+          <h1 className="mt-1 text-2xl font-black tracking-[-0.04em] text-slate-950">
+            Wallet & Credit Line
+          </h1>
+        </div>
+      </div>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,.8fr)]">
+        <article
+          className={`relative min-h-[310px] overflow-hidden rounded-[26px] p-7 text-white shadow-[0_24px_55px_rgba(15,23,42,.18)] ${
+            isWallet
+              ? "bg-[linear-gradient(135deg,#101a30_0%,#20365d_100%)]"
+              : "bg-[linear-gradient(135deg,#63209a_0%,#3d2a84_100%)]"
+          }`}
+        >
+          <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-white/8 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-6">
+            <div>
+              <p className="text-sm font-semibold text-white/65">
+                {isWallet ? "Total Available Balance" : "Available Credit Limit"}
+              </p>
+              <p className="mt-3 text-4xl font-black tracking-[-0.05em] md:text-5xl">
+                {isLoading ? "..." : formatCurrency(availableBalance)}
+                <span className="ml-2 text-base font-bold text-white/55">Credits</span>
+              </p>
+              {!isWallet ? (
+                <p className="mt-3 text-sm font-semibold text-white/70">
+                  Used: {formatCurrency(creditUsed)} / Total Limit: {formatCurrency(totalLimit)}
                 </p>
-              </div>
-
-              <div className="flex h-18 w-18 items-center justify-center rounded-[24px] border border-white/10 bg-white/8 text-[#67a3ff] shadow-inner shadow-white/5 md:h-20 md:w-20">
-                <WalletCards size={36} strokeWidth={1.9} />
-              </div>
+              ) : null}
             </div>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => setIsAddCreditOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#3165ff] px-6 py-3.5 text-base font-black text-white shadow-[0_14px_28px_rgba(49,101,255,0.3)] transition-all hover:-translate-y-0.5 hover:bg-[#2857ea]"
-              >
-                <Plus size={19} strokeWidth={2.7} />
-                Add Credit
-              </button>
-
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/10 px-6 py-3.5 text-base font-bold text-white/65"
-              >
-                Statement
-              </button>
-            </div>
+            <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-blue-300">
+              {isWallet ? <WalletCards size={31} /> : <CreditCard size={31} />}
+            </span>
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="rounded-[34px] border border-slate-200 bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.06)] md:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
-                    Wallet Top-Up
-                  </p>
-                  <h3 className="mt-2 text-[1.7rem] font-black tracking-[-0.05em] text-slate-900">
-                    Add prepaid balance fast
-                  </h3>
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-                    Use any preset to auto-fill the amount, or type a custom value before confirming.
-                  </p>
-                </div>
-
-                <button
-                  id="add-credit"
-                  type="button"
-                  onClick={() => setIsAddCreditOpen(true)}
-                  className="hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100 md:inline-flex"
-                >
-                  Open Form
-                </button>
-              </div>
-
-              <div className="mt-5 rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#fbfcff_0%,#f6f9ff_100%)] p-4">
-                <div className="flex flex-wrap gap-2.5">
-                  {QUICK_AMOUNTS.map((presetAmount) => (
-                    <button
-                      key={presetAmount}
-                      type="button"
-                      onClick={() => {
-                        handlePresetClick(presetAmount);
-                        setIsAddCreditOpen(true);
-                      }}
-                      className="rounded-full border border-[#d8e4ff] bg-white px-4 py-2 text-sm font-black text-[#2952ff] shadow-[0_8px_20px_rgba(41,82,255,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#b7cbff]"
-                    >
-                      {formatCurrency(presetAmount)}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                  <label className="block">
-                    <span className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
-                      Manual Amount
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={amount}
-                      onChange={(event) => setAmount(event.target.value)}
-                      onFocus={() => setIsAddCreditOpen(true)}
-                      placeholder="Enter amount"
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-900 outline-none transition-all focus:border-[#2952ff] focus:ring-4 focus:ring-[#2952ff]/10"
-                    />
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCreditOpen(true)}
-                    className="mt-[1.45rem] inline-flex items-center justify-center rounded-2xl bg-[#2952ff] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(41,82,255,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#1f46e5]"
-                  >
-                    Add Credit
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-5">
-              <MetricCard
-                icon={ArrowDownLeft}
-                iconClassName="bg-emerald-50 text-emerald-600"
-                label="Last Top-up"
-                value={lastTopUp ? formatCurrency(lastTopUp.amount) : "--"}
-                meta={
-                  lastTopUp
-                    ? new Date(lastTopUp.createdAt).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric"
-                      })
-                    : "No top-up added yet"
-                }
-              />
-
-              <div
-                id="credit-line"
-                className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.06)] md:p-6"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
-                      Credit Line
-                    </p>
-                    <h3 className="mt-2 text-[1.55rem] font-black tracking-[-0.05em] text-slate-900">
-                      Next phase
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      This section stays visible in the same screen, but the workflow will be implemented later.
-                    </p>
-                  </div>
-
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#f4ecff] text-[#6a2fb1]">
-                    <CircleDollarSign size={26} strokeWidth={1.9} />
-                  </div>
-                </div>
-
-                <div className="mt-5 rounded-[26px] bg-[linear-gradient(135deg,#53208d_0%,#6a2fb1_100%)] p-5 text-white shadow-[0_24px_50px_rgba(83,32,141,0.2)]">
-                  <p className="text-sm font-bold text-violet-100/85">Available Credit Line</p>
-                  <p className="mt-2 text-[2.1rem] font-black tracking-[-0.06em]">
-                    {formatCredits(creditLineBalance)}
-                  </p>
-                  <p className="mt-3 text-sm text-violet-100/75">Used: -- / Total Limit: --</p>
-                </div>
-              </div>
-
-              <MetricCard
-                icon={ArrowUpRight}
-                iconClassName="bg-rose-50 text-rose-500"
-                label="Usage (This Month)"
-                value={usageSummary}
-                meta="Usage tracking will be connected with transaction history."
-              />
-            </div>
+          <div className="relative mt-10 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={openTopUp}
+              className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white shadow-lg ${
+                isWallet ? "bg-[#2f66f3]" : "bg-[#a84df4]"
+              }`}
+            >
+              {isWallet ? <Plus size={18} /> : <CheckCircle2 size={18} />}
+              {isWallet ? "Add Credits" : "Top Up Credit Line"}
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-6 py-3 text-sm font-bold text-white/85"
+            >
+              <Download size={17} />
+              Statement
+            </button>
           </div>
+        </article>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+          <MetricCard
+            icon={isWallet ? ArrowDownLeft : CalendarDays}
+            label={isWallet ? "Last Top-up" : "Next Bill Date"}
+            value={
+              isWallet
+                ? lastTopUp
+                  ? formatCurrency(lastTopUp.amount)
+                  : "--"
+                : nextBillingDate()
+            }
+            meta={
+              isWallet
+                ? lastTopUp
+                  ? new Date(lastTopUp.createdAt).toLocaleDateString("en-IN")
+                  : "No top-up recorded"
+                : "Billing Cycle: 5th Monthly"
+            }
+            tone={isWallet ? "emerald" : "violet"}
+          />
+          <MetricCard
+            icon={ArrowUpRight}
+            label="Usage (This Month)"
+            value={formatCurrency(currentMonthUsage)}
+            meta={`${transactions.filter((item) => item.transactionType === "DEBIT").length} transactions`}
+            tone="rose"
+          />
         </div>
       </section>
 
-      {isAddCreditOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-[2px] md:items-center">
-          <div className="w-full max-w-xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_32px_80px_rgba(15,23,42,0.2)] md:p-7">
+      <section className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,.05)]">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+          <div>
+            <p className="premium-kicker">{isWallet ? "Wallet" : "Credit line"}</p>
+            <h2 className="mt-1 text-lg font-black text-slate-900">
+              {isWallet ? "Wallet Passbook" : "Credit Line Statement"}
+            </h2>
+          </div>
+          <div className="flex gap-2 text-slate-400">
+            <Filter size={18} />
+            <CalendarDays size={18} />
+          </div>
+        </div>
+        <div className="max-h-[310px] overflow-auto custom-scrollbar">
+          <table className="w-full min-w-[850px] table-fixed text-left text-xs">
+            <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] font-black uppercase tracking-[.08em] text-slate-500">
+              <tr>
+                <th className="px-6 py-4">Transaction ID</th>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Description</th>
+                <th className="px-6 py-4">Amount</th>
+                <th className="px-6 py-4">Balance After</th>
+                <th className="px-6 py-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((transaction) => (
+                <tr key={transaction.id} className="border-t border-slate-100 hover:bg-slate-50/80">
+                  <td className="px-6 py-4 font-mono font-bold text-slate-500">TX-{transaction.id}</td>
+                  <td className="px-6 py-4 text-slate-600">
+                    {new Date(transaction.createdAt).toLocaleDateString("en-IN")}
+                  </td>
+                  <td className="px-6 py-4 font-semibold text-slate-800">
+                    {transaction.description || transaction.serviceName}
+                  </td>
+                  <td className={`px-6 py-4 font-black ${
+                    transaction.transactionType === "DEBIT" ? "text-rose-600" : "text-emerald-600"
+                  }`}>
+                    {transaction.transactionType === "DEBIT" ? "−" : "+"}{formatCurrency(transaction.amount)}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-slate-700">{formatCurrency(transaction.balanceAfter)}</td>
+                  <td className="px-6 py-4">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold text-emerald-700">
+                      {transaction.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {!transactions.length ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center text-sm text-slate-400">
+                    No {isWallet ? "Wallet" : "Credit Line"} transactions yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {isTopUpOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <form
+            onSubmit={handleTopUp}
+            className="w-full max-w-md rounded-[28px] border border-white bg-white p-6 shadow-2xl"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
-                  Add Credit
-                </p>
-                <h4 className="mt-2 text-[1.9rem] font-black tracking-[-0.05em] text-slate-900">
-                  Top up your wallet
-                </h4>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Choose a quick amount or enter a custom value manually.
-                </p>
+                <p className="premium-kicker">Add balance</p>
+                <h2 className="mt-2 text-xl font-black text-slate-900">
+                  Top up {isWallet ? "Wallet" : "Credit Line"}
+                </h2>
               </div>
-
-              <button
-                type="button"
-                onClick={handleCloseAddCredit}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
-              >
+              <button type="button" onClick={() => setIsTopUpOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100">
                 <X size={18} />
               </button>
             </div>
-
-            <form className="mt-7 space-y-6" onSubmit={handleAddCredit}>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {QUICK_AMOUNTS.map((presetAmount) => (
-                  <button
-                    key={presetAmount}
-                    type="button"
-                    onClick={() => handlePresetClick(presetAmount)}
-                    className={`rounded-2xl border px-4 py-3 text-sm font-black transition-all ${
-                      amount === String(presetAmount)
-                        ? "border-[#2952ff] bg-[#2952ff] text-white shadow-[0_16px_26px_rgba(41,82,255,0.22)]"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-[#c8d6ff] hover:bg-white"
-                    }`}
-                  >
-                    {formatCurrency(presetAmount)}
-                  </button>
-                ))}
-              </div>
-
-              <label className="block">
-                <span className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
-                  Amount
-                </span>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {QUICK_AMOUNTS.map((quickAmount) => (
+                <button
+                  key={quickAmount}
+                  type="button"
+                  onClick={() => setAmount(String(quickAmount))}
+                  className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-[#2952ff]"
+                >
+                  {formatCurrency(quickAmount)}
+                </button>
+              ))}
+            </div>
+            <label className="mt-5 block">
+              <span className="text-xs font-bold text-slate-700">Amount</span>
+              <div className="relative mt-2">
+                <ReceiptText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
                 <input
                   type="number"
                   min="1"
-                  step="1"
+                  step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  placeholder="Enter amount"
-                  className="mt-2 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-lg font-semibold text-slate-900 outline-none transition-all focus:border-[#2952ff] focus:ring-4 focus:ring-[#2952ff]/10"
+                  placeholder="Enter top-up amount"
+                  className="w-full rounded-2xl border border-slate-200 py-3.5 pl-11 pr-4 text-sm font-semibold"
+                  autoFocus
                 />
-              </label>
-
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={handleCloseAddCredit}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center justify-center rounded-2xl bg-[#2952ff] px-6 py-3.5 text-sm font-black text-white shadow-[0_16px_28px_rgba(41,82,255,0.24)] transition-all hover:bg-[#2149ea] disabled:cursor-not-allowed disabled:bg-[#b7c8ff]"
-                >
-                  {isSubmitting ? "Adding..." : "Confirm Credit"}
-                </button>
               </div>
-            </form>
-          </div>
+            </label>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mt-6 w-full rounded-2xl bg-[#2952ff] py-3.5 text-sm font-black text-white disabled:opacity-60"
+            >
+              {isSubmitting ? "Processing..." : `Top up ${isWallet ? "Wallet" : "Credit Line"}`}
+            </button>
+          </form>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function MetricCard({ icon: Icon, iconClassName, label, value, meta }) {
-  return (
-    <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.06)] md:p-6">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconClassName}`}>
-        <Icon size={20} />
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#57729c]">{label}</p>
-      <p className="mt-3 text-[2rem] font-black tracking-[-0.05em] text-slate-900">{value}</p>
-      <p className="mt-2 text-sm text-slate-400">{meta}</p>
     </div>
   );
 }

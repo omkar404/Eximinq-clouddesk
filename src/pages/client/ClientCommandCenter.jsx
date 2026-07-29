@@ -131,7 +131,7 @@ export default function ClientCommandCenter() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+        <div className="dashboard-table-viewport custom-scrollbar">
           <table className="dashboard-ledger-table">
             <thead>
               <tr>

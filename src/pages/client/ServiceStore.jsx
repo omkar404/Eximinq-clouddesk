@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import IemRegistrationWorkflow from "./IemRegistrationWorkflow";
+import IndustrialLicenseWorkflow from "./IndustrialLicenseWorkflow";
+import {
+  getCertificateOfOriginConfiguration,
+  getCertificateOfOriginLedger,
+  getCertificateOfOriginQuote,
+  getCertificateOfOriginRequests,
+  removeCertificateOfOriginDocument,
+  saveCertificateOfOriginDraft,
+  submitCertificateOfOrigin,
+  uploadCertificateOfOriginDocument
+} from "../../services/certificateOfOriginService";
 import {
   ArrowLeft,
   ArrowRight,
@@ -9,6 +21,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
   CreditCard,
   Download,
@@ -26,6 +39,7 @@ import {
   ReceiptText,
   Save,
   Scale,
+  Search,
   ScrollText,
   Shield,
   ShieldCheck,
@@ -423,9 +437,14 @@ function mapPathToState(pathname) {
   );
 
   if (matchedCategory) {
+    const categoryServices = CATEGORY_SERVICE_GROUPS[matchedCategory.id] || [];
+    const matchedService = categoryServices.find(
+      service => normalizeServiceStoreSegment(service.id) === serviceSegment
+    );
+
     return {
       categoryId: matchedCategory.id,
-      serviceId: null
+      serviceId: matchedService?.id || null
     };
   }
 
@@ -546,12 +565,21 @@ function CategoryServiceCard({ service, onSelect }) {
 }
 
 function CertificateOfOriginWorkflow({ service, onBack }) {
+  const navigate = useNavigate();
   const [certType, setCertType] = useState("non-preferential");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [destination, setDestination] = useState("");
   const [issuingAgency, setIssuingAgency] = useState("");
   const [agreement, setAgreement] = useState("");
   const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const [configuration, setConfiguration] = useState(null);
+  const [quote, setQuote] = useState(null);
+  const [requestId, setRequestId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadingDocumentId, setUploadingDocumentId] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [resumedDraftCode, setResumedDraftCode] = useState("");
+  const [ledger, setLedger] = useState({ balances: null, transactions: [] });
   const [files, setFiles] = useState({
     invoice: { status: "Not Uploaded", name: null },
     packingList: { status: "Not Uploaded", name: null },
@@ -570,25 +598,246 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     return () => window.clearTimeout(timeoutId);
   }, [showSavedMessage]);
 
-  const walletBalance = 12500;
-  const creditLineBalance = 50000;
-  const costs =
-    certType === "preferential"
-      ? { officialFee: 650, serviceCharge: 255, gst: 45.9 }
-      : { officialFee: 450, serviceCharge: 125, gst: 22.5 };
-  const totalDeduction = costs.officialFee + costs.serviceCharge + costs.gst;
-  const walletAfter = walletBalance - costs.officialFee;
-  const creditAfter = creditLineBalance - (costs.serviceCharge + costs.gst);
+  useEffect(() => {
+    let active = true;
 
-  const handleUpload = (type) => {
-    setFiles((currentFiles) => ({
-      ...currentFiles,
-      [type]: { status: "Uploaded", name: `${type}_final_v1.pdf` }
-    }));
+    Promise.all([
+      getCertificateOfOriginConfiguration(),
+      getCertificateOfOriginRequests(),
+      getCertificateOfOriginLedger()
+    ])
+      .then(([data, requestData, ledgerData]) => {
+        if (active) {
+          setConfiguration(data);
+          setLedger(ledgerData);
+          setLoadError("");
+          const draft = requestData.requests?.find((request) => request.status === "DRAFT");
+
+          if (draft) {
+            const payload = draft.payload || {};
+            setRequestId(draft.id);
+            setResumedDraftCode(draft.request_code);
+            setCertType(payload.certificateType || "non-preferential");
+            setInvoiceNumber(payload.invoiceNumber || "");
+            setDestination(payload.destinationCountry || "");
+            setIssuingAgency(payload.issuingAgency || "");
+            setAgreement(payload.agreement || "");
+            setFiles((currentFiles) => {
+              const restoredFiles = { ...currentFiles };
+              for (const document of draft.documents || []) {
+                restoredFiles[document.documentKey] = {
+                  status: "Uploaded",
+                  name: document.name,
+                  size: Number(document.size || 0)
+                };
+              }
+              return restoredFiles;
+            });
+          }
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setLoadError("Unable to load Certificate of Origin service configuration.");
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    getCertificateOfOriginQuote(certType)
+      .then((data) => {
+        if (active) setQuote(data);
+      })
+      .catch(() => {
+        if (active) setLoadError("Unable to calculate the service pricing.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [certType]);
+
+  const serviceConfig = configuration?.service;
+  const costs = quote || {
+    officialFee: 0,
+    serviceCharge: 0,
+    gst: 0,
+    total: 0,
+    openingWalletBalance: 0,
+    closingWalletBalance: 0,
+    currentCreditLimit: 0,
+    availableCreditAfter: 0
+  };
+  const walletBalance = costs.openingWalletBalance;
+  const creditLineBalance = costs.currentCreditLimit;
+  const totalDeduction = costs.total;
+  const walletAfter = costs.closingWalletBalance;
+  const creditAfter = costs.availableCreditAfter;
+
+  const buildRequestPayload = () => ({
+    requestId,
+    certificateType: certType,
+    invoiceNumber,
+    destinationCountry: destination,
+    issuingAgency,
+    agreement,
+    documents: files
+  });
+
+  const ensureDraft = async () => {
+    if (requestId) return requestId;
+    const data = await saveCertificateOfOriginDraft(buildRequestPayload());
+    setRequestId(data.request.id);
+    setResumedDraftCode(data.request.request_code);
+    return data.request.id;
   };
 
-  const handleSaveDraft = () => {
-    setShowSavedMessage(true);
+  const handleFileSelection = async (documentId, event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      setUploadingDocumentId(documentId);
+      const draftId = await ensureDraft();
+      const data = await uploadCertificateOfOriginDocument(draftId, documentId, file);
+      setFiles((currentFiles) => ({
+        ...currentFiles,
+        [documentId]: {
+          status: data.document.status,
+          name: data.document.name,
+          size: data.document.size
+        }
+      }));
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Upload failed",
+        text: error.response?.data?.message || "The selected document could not be uploaded.",
+        confirmButtonColor: "#2952ff"
+      });
+    } finally {
+      setUploadingDocumentId(null);
+    }
+  };
+
+  const handleRemoveFile = async (documentId) => {
+    if (!requestId) return;
+    try {
+      setUploadingDocumentId(documentId);
+      await removeCertificateOfOriginDocument(requestId, documentId);
+      setFiles((currentFiles) => ({
+        ...currentFiles,
+        [documentId]: { status: "Not Uploaded", name: null }
+      }));
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Unable to remove document",
+        text: error.response?.data?.message || "Please try again.",
+        confirmButtonColor: "#2952ff"
+      });
+    } finally {
+      setUploadingDocumentId(null);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    try {
+      setIsSaving(true);
+      const data = await saveCertificateOfOriginDraft(buildRequestPayload());
+      setRequestId(data.request.id);
+      setResumedDraftCode(data.request.request_code);
+      setShowSavedMessage(true);
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Unable to save draft",
+        text: error.response?.data?.message || "Please try again.",
+        confirmButtonColor: "#2952ff"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!isFormValid) {
+      Swal.fire({
+        icon: "info",
+        title: "Complete Information",
+        text: "Fill the required fields and upload the mandatory documents to continue.",
+        confirmButtonColor: "#2952ff"
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const data = await submitCertificateOfOrigin(buildRequestPayload());
+      setRequestId(data.request.id);
+      setResumedDraftCode("");
+      const [quoteData, ledgerData] = await Promise.all([
+        getCertificateOfOriginQuote(certType),
+        getCertificateOfOriginLedger()
+      ]);
+      setQuote(quoteData);
+      setLedger(ledgerData);
+      window.dispatchEvent(
+        new CustomEvent("wallet:updated", {
+          detail: {
+            balance: data.balances.walletBalance,
+            creditLine: data.balances.creditLineBalance
+          }
+        })
+      );
+      await Swal.fire({
+        icon: "success",
+        title: "Request submitted",
+        text: `${data.request.request_code} has been sent for processing.`,
+        confirmButtonColor: "#2952ff"
+      });
+    } catch (error) {
+      const balanceCode = error.response?.data?.errors?.code;
+      if (error.response?.status === 402 && balanceCode) {
+        const messages = {
+          INSUFFICIENT_WALLET:
+            "Wallet balance is insufficient. Please top up your Wallet to continue.",
+          INSUFFICIENT_CREDIT_LINE:
+            "Credit Line balance is insufficient. Please top up your Credit Line to continue.",
+          INSUFFICIENT_WALLET_AND_CREDIT_LINE:
+            "Wallet and Credit Line balances are insufficient. Please top up both before continuing."
+        };
+        const result = await Swal.fire({
+          icon: "warning",
+          title: "Top up required",
+          text: messages[balanceCode] || "Available balance is insufficient.",
+          showCancelButton: true,
+          confirmButtonText: "Go to Wallet & Credit",
+          cancelButtonText: "Stay here",
+          confirmButtonColor: "#2952ff"
+        });
+        if (result.isConfirmed) {
+          navigate("/client/wallet-credit#add-credit");
+        }
+        return;
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: "Unable to submit request",
+        text: error.response?.data?.message || "Please try again.",
+        confirmButtonColor: "#2952ff"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isFormValid =
@@ -602,30 +851,22 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         files.mfgDecl.status === "Uploaded" &&
         files.costSheet.status === "Uploaded"));
 
-  const documentFields = [
-    { id: "invoice", label: "Commercial Invoice", req: true },
-    { id: "packingList", label: "Packing List", req: true },
-    {
-      id: "costSheet",
-      label: "Cost Sheet",
-      req: true,
-      sample: true,
-      hide: certType === "non-preferential"
-    },
-    {
-      id: "mfgDecl",
-      label: "Manufacturer's Declaration",
-      req: true,
-      hide: certType === "non-preferential"
-    },
-    { id: "bol", label: "Bill of Lading / AWB", req: false }
-  ].filter((field) => !field.hide);
-
-  const formatAmount = (value) => `Rs. ${Number(value).toLocaleString("en-IN")}`;
+  const documentFields = (serviceConfig?.documents || [])
+    .filter((field) => field.id === "bol" || field.requiredFor?.includes(certType))
+    .map((field) => ({
+      ...field,
+      req: field.requiredFor?.includes(certType),
+      sample: field.sampleAvailable
+    }));
 
   return (
     <div className="min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
+        {loadError ? (
+          <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+            {loadError}
+          </div>
+        ) : null}
         {showSavedMessage ? (
           <div className="mb-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-4 py-3 text-white shadow-2xl">
             <CheckCircle2 className="text-green-400" size={18} />
@@ -633,6 +874,17 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
               <p className="text-xs font-bold">Draft Saved Successfully</p>
               <p className="text-[11px] text-slate-400">
                 You can resume this from your pending tasks later.
+              </p>
+            </div>
+          </div>
+        ) : null}
+        {resumedDraftCode && !showSavedMessage ? (
+          <div className="mb-3 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900">
+            <Save size={17} />
+            <div>
+              <p className="text-xs font-bold">Draft {resumedDraftCode} restored</p>
+              <p className="text-[11px] text-blue-700">
+                Continue where you left off. This request remains editable until submission.
               </p>
             </div>
           </div>
@@ -655,15 +907,15 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                 </button>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-lg font-black tracking-tight text-slate-900 md:text-xl">
-                    Issuance of {service.title}
+                    {serviceConfig?.name || service.title}
                   </h1>
                   <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">
-                    Transactional
+                    {serviceConfig?.transactionType}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    DGFT Compliance Standard
+                    {serviceConfig?.standard}
                   </p>
                   <div className="h-1 w-1 rounded-full bg-slate-300" />
                   <div className="flex items-center gap-1 text-amber-600">
@@ -688,30 +940,24 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
           <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1.45fr)_340px]">
             <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => setCertType("non-preferential")}
-                className={`flex flex-col items-center gap-1 rounded-xl px-4 py-3 transition-all ${
-                  certType === "non-preferential"
-                    ? "border border-blue-100 bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Globe size={18} />
-                <span className="text-sm font-bold tracking-tight">Non-Preferential</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCertType("preferential")}
-                className={`flex flex-col items-center gap-1 rounded-xl px-4 py-3 transition-all ${
-                  certType === "preferential"
-                    ? "border border-blue-100 bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Scale size={18} />
-                <span className="text-sm font-bold tracking-tight">Preferential (FTA)</span>
-              </button>
+              {(serviceConfig?.certificateTypes || []).map((type, index) => {
+                const TypeIcon = index === 0 ? Globe : Scale;
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setCertType(type.id)}
+                    className={`flex flex-col items-center gap-1 rounded-xl px-4 py-3 transition-all ${
+                      certType === type.id
+                        ? "border border-blue-100 bg-white text-blue-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <TypeIcon size={18} />
+                    <span className="text-sm font-bold tracking-tight">{type.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -721,7 +967,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="INV/2026/0042"
+                  placeholder={serviceConfig?.invoicePlaceholder || ""}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
                   value={invoiceNumber}
                   onChange={(event) => setInvoiceNumber(event.target.value)}
@@ -739,10 +985,9 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                     onChange={(event) => setIssuingAgency(event.target.value)}
                   >
                     <option value="">Select Chamber/Agency...</option>
-                    <option value="ficci">FICCI</option>
-                    <option value="cii">CII</option>
-                    <option value="eepc">EEPC India</option>
-                    <option value="apex">Apex Chamber of Commerce</option>
+                    {(serviceConfig?.issuingAgencies || []).map((agency) => (
+                      <option key={agency.value} value={agency.value}>{agency.label}</option>
+                    ))}
                   </select>
                   <Building2
                     className="pointer-events-none absolute right-3 top-3 text-slate-400"
@@ -762,10 +1007,9 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                     onChange={(event) => setDestination(event.target.value)}
                   >
                     <option value="">Select country...</option>
-                    <option value="AE">United Arab Emirates</option>
-                    <option value="SG">Singapore</option>
-                    <option value="DE">Germany</option>
-                    <option value="VN">Vietnam</option>
+                    {(serviceConfig?.destinationCountries || []).map((country) => (
+                      <option key={country.value} value={country.value}>{country.label}</option>
+                    ))}
                   </select>
                   <ChevronDown
                     className="pointer-events-none absolute right-3 top-3 text-slate-400"
@@ -786,9 +1030,9 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                   onChange={(event) => setAgreement(event.target.value)}
                 >
                   <option value="">Select FTA Framework...</option>
-                  <option value="cepa">India-UAE CEPA</option>
-                  <option value="aifta">ASEAN-India FTA</option>
-                  <option value="isfta">Indo-Sri Lanka FTA</option>
+                  {(serviceConfig?.ftaAgreements || []).map((fta) => (
+                    <option key={fta.value} value={fta.value}>{fta.label}</option>
+                  ))}
                 </select>
               </div>
             ) : null}
@@ -847,18 +1091,37 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                       </div>
                     </div>
 
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleUpload(doc.id)}
-                        className={`rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase transition-all ${
+                    <div className="flex justify-end gap-2">
+                      {files[doc.id].status === "Uploaded" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(doc.id)}
+                          disabled={uploadingDocumentId === doc.id}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase text-rose-600 disabled:opacity-60"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                      <label
+                        className={`cursor-pointer rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase transition-all ${
                           files[doc.id].status === "Uploaded"
                             ? "border-green-200 bg-green-50 text-green-600"
                             : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                         }`}
                       >
-                        {files[doc.id].status === "Uploaded" ? "Replace" : "Attach File"}
-                      </button>
+                        {uploadingDocumentId === doc.id
+                          ? "Uploading..."
+                          : files[doc.id].status === "Uploaded"
+                            ? "Replace"
+                            : "Attach File"}
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          disabled={uploadingDocumentId === doc.id}
+                          onChange={(event) => handleFileSelection(doc.id, event)}
+                        />
+                      </label>
                     </div>
                   </div>
                 ))}
@@ -867,7 +1130,12 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
 
             </div>
 
-            <div className="space-y-4 overflow-hidden rounded-[24px] border border-slate-800 bg-slate-900 shadow-xl xl:sticky xl:top-24 xl:self-start">
+            <div className="relative space-y-4 overflow-hidden rounded-[24px] border border-slate-800 bg-slate-900 shadow-xl xl:sticky xl:top-24 xl:self-start">
+              {!quote ? (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/95 text-xs font-bold text-blue-300">
+                  Loading transaction ledger…
+                </div>
+              ) : null}
               <div className="flex items-center justify-between border-b border-white/5 bg-slate-800/50 px-4 py-3">
                 <div className="flex items-center gap-2 text-blue-400">
                   <Receipt size={16} />
@@ -962,6 +1230,38 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                   </span>
                 </div>
               </div>
+
+              <div className="border-t border-white/10 px-4 pb-4">
+                <div className="mb-2 flex items-center justify-between pt-3">
+                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Recent Transactions
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-500">
+                    {ledger.transactions.length} entries
+                  </span>
+                </div>
+                <div className="max-h-32 space-y-2 overflow-y-auto custom-scrollbar">
+                  {ledger.transactions.slice(0, 6).map((transaction) => (
+                    <div key={transaction.id} className="rounded-lg border border-white/5 bg-white/[0.04] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[10px] font-bold text-slate-200">
+                          {transaction.serviceName}
+                        </span>
+                        <span className="text-[10px] font-black text-rose-400">
+                          - ₹{transaction.amount.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-[9px] text-slate-500">
+                        <span>{transaction.accountType === "WALLET" ? "Wallet" : "Credit Line"} · {transaction.status}</span>
+                        <span>{new Date(transaction.transactionDate).toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {!ledger.transactions.length ? (
+                    <p className="py-3 text-center text-[10px] text-slate-500">No transactions yet</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -978,31 +1278,24 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
               <button
                 type="button"
                 onClick={handleSaveDraft}
+                disabled={isSaving || !serviceConfig}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50"
               >
                 <Save size={16} className="text-slate-500" />
-                Save as Draft
+                {isSaving ? "Saving..." : "Save as Draft"}
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  Swal.fire({
-                    icon: isFormValid ? "success" : "info",
-                    title: isFormValid ? "Payment flow ready" : "Complete Information",
-                    text: isFormValid
-                      ? "Certificate of Origin processing flow will be connected in the next phase."
-                      : "Fill the required fields and upload the mandatory documents to continue.",
-                    confirmButtonColor: "#2952ff"
-                  })
-                }
+                onClick={handleSubmit}
+                disabled={isSaving || !isFormValid}
                 className={`inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-sm font-black transition-all active:scale-95 ${
                   isFormValid
                     ? "bg-blue-700 text-white shadow-xl shadow-blue-200 hover:bg-blue-800"
                     : "cursor-not-allowed bg-slate-200 text-slate-400"
                 }`}
               >
-                {isFormValid ? "Confirm & Process Payment" : "Complete Information"}
+                {isSaving ? "Processing..." : isFormValid ? "Confirm & Process Payment" : "Complete Information"}
                 {isFormValid ? <ArrowRight size={16} /> : null}
               </button>
             </div>
@@ -1013,112 +1306,132 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
   );
 }
 
-function ComplianceServiceDetailView({ service, onBack }) {
-  if (service.id === "certificate-of-origin") {
-    return <CertificateOfOriginWorkflow service={service} onBack={onBack} />;
-  }
-
+function UniversalServiceWorkflow({ service, category, onBack }) {
   const Icon = service.icon;
+  const [activeMode, setActiveMode] = useState("standard");
+  const [form, setForm] = useState({ reference: "", entity: "", description: "" });
+  const [documents, setDocuments] = useState({});
+
+  const evidence = [
+    { id: "application", label: "Signed application / request letter", required: true },
+    { id: "entity", label: "Entity and statutory supporting document", required: true },
+    { id: "supporting", label: "Additional supporting evidence", required: false }
+  ];
+
+  const handleFile = (documentId, file) => {
+    if (file) setDocuments(current => ({ ...current, [documentId]: file }));
+  };
+
+  const saveDraft = () => {
+    Swal.fire({
+      icon: "success",
+      title: "Draft saved",
+      text: `${service.title} has been retained in this session.`,
+      confirmButtonColor: "#2952ff"
+    });
+  };
 
   return (
     <div className="min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
-        <div className="rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfcff_100%)] shadow-[0_24px_70px_rgba(15,23,42,0.06)]">
-          <div className="px-6 py-6 md:px-8">
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[#101eb9]"
-            >
-              <ArrowLeft size={16} />
-              Back to Compliance
-            </button>
-
-            <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-start">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#eef3ff] text-[#2952ff]">
-                <Icon size={34} />
+        <article className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
+          <header className="flex items-start justify-between gap-5 border-b border-slate-100 px-5 py-5 md:px-6">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#2952ff] text-white shadow-lg shadow-blue-200">
+                <Icon size={25} />
               </div>
-
-              <div className="max-w-4xl">
-                <p className="text-sm font-black uppercase tracking-[0.28em] text-slate-400">
-                  Compliance Service
-                </p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-                  {service.title}
-                </h1>
-                <p className="mt-4 text-base font-semibold text-[#2952ff]">
-                  {service.subtitle}
-                </p>
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-500">
-                  {service.caption}. This route is now wired correctly, so when users click
-                  the inner Compliance menu they land on the matching service screen instead
-                  of a broken or mismatched view.
-                </p>
+              <div className="min-w-0">
+                <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#2952ff]">
+                  <ArrowLeft size={16} /> Back to {category.title}
+                </button>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-black uppercase tracking-tight text-slate-950 md:text-2xl">{service.title}</h1>
+                  <span className="rounded-full bg-slate-950 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white">Managed service</span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  <span>{category.eyebrow}</span><span className="text-slate-300">•</span><span className="text-amber-600">Priority processing available</span>
+                </div>
               </div>
             </div>
-          </div>
+            <button type="button" onClick={onBack} aria-label="Close service" className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={20} /></button>
+          </header>
 
-          <div className="flex flex-col gap-4 border-t border-slate-200 bg-white px-6 py-5 md:flex-row md:items-center md:justify-between">
-            <button
-              type="button"
-              onClick={onBack}
-              className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400 transition hover:text-rose-500"
-            >
-              Back to Services
-            </button>
+          <div className="grid gap-5 p-5 md:p-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="min-w-0 space-y-5">
+              <div className="grid rounded-2xl bg-slate-100 p-1 sm:grid-cols-2">
+                {[["standard", "Standard filing", "Complete service workflow"], ["assisted", "Assisted review", "Expert-led preparation"]].map(([id, title, subtitle]) => (
+                  <button key={id} type="button" onClick={() => setActiveMode(id)} className={`rounded-xl px-4 py-3 text-center transition ${activeMode === id ? "border border-blue-200 bg-white text-[#2952ff] shadow-sm" : "text-slate-400"}`}>
+                    <span className="block text-xs font-black uppercase">{title}</span><span className="mt-1 block text-[9px] font-semibold uppercase">{subtitle}</span>
+                  </button>
+                ))}
+              </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() =>
-                  Swal.fire({
-                    icon: "success",
-                    title: "Draft saved",
-                    text: `${service.title} has been saved in your current navigation flow.`,
-                    confirmButtonColor: "#101eb9"
-                  })
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-4 text-sm font-black text-slate-700 shadow-sm"
-              >
-                <Save size={16} />
-                Save Draft
-              </button>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Application / reference number</span><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} placeholder="Enter reference number" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
+                <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Entity / branch</span><input value={form.entity} onChange={e => setForm({ ...form, entity: e.target.value })} placeholder="Select or enter entity" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
+              </div>
+              <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Request details</span><textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} placeholder={service.caption} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
 
-              <button
-                type="button"
-                onClick={() =>
-                  Swal.fire({
-                    icon: "info",
-                    title: service.title,
-                    text: `${service.title} detail workflow will be connected in the next phase.`,
-                    confirmButtonColor: "#101eb9"
-                  })
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2952ff] px-8 py-4 text-sm font-black text-white shadow-xl shadow-blue-200"
-              >
-                Continue
-                <ArrowRight size={18} />
-              </button>
+              <section>
+                <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2"><Upload size={15} /><h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Required supporting evidence</h2></div>
+                <div className="space-y-2">
+                  {evidence.map(item => {
+                    const file = documents[item.id];
+                    return <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${file ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}><FileText size={17} /></div><div className="min-w-0"><p className="truncate text-xs font-black text-slate-800">{item.label} {item.required && <span className="ml-1 text-[9px] text-rose-500">REQUIRED</span>}</p><p className={`mt-1 truncate text-[10px] ${file ? "font-semibold text-emerald-600" : "text-slate-400"}`}>{file?.name || "Awaiting document upload"}</p></div></div>
+                      <label className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-5 py-2 text-center text-[10px] font-black uppercase text-slate-700 hover:border-[#2952ff] hover:text-[#2952ff]">{file ? "Replace" : "Upload"}<input type="file" className="hidden" onChange={e => handleFile(item.id, e.target.files?.[0])} /></label>
+                    </div>;
+                  })}
+                </div>
+              </section>
             </div>
+
+            <aside className="h-fit overflow-hidden rounded-[26px] bg-[#10192d] text-white shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
+              <div className="border-b border-white/10 px-5 py-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-blue-400"><Receipt size={15} /> Transaction ledger (INR)</p></div>
+              <div className="space-y-5 px-5 py-5 text-xs">
+                <div><p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Prepaid wallet</p><div className="flex justify-between border-b border-white/10 pb-3 text-slate-400"><span>Official / statutory fee</span><span className="font-bold text-white">Calculated on review</span></div></div>
+                <div><p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Corporate credit line</p><div className="flex justify-between border-b border-white/10 pb-3 text-slate-400"><span>Professional charges</span><span className="font-bold text-white">Calculated on review</span></div></div>
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-3 text-[11px] leading-5 text-blue-100">Your balances are validated by the backend before final submission. No amount is deducted while saving a draft.</div>
+              </div>
+              <div className="bg-[#2952ff] px-5 py-4"><p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">Estimated payable</p><p className="mt-1 text-xl font-black">Pending quotation</p></div>
+            </aside>
           </div>
-        </div>
+
+          <footer className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
+            <button type="button" onClick={onBack} className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-rose-500">Discard</button>
+            <div className="flex flex-col gap-3 sm:flex-row"><button type="button" onClick={saveDraft} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"><Save size={16} /> Save as Draft</button><button type="button" onClick={() => Swal.fire({ icon: "info", title: "Request ready for review", text: "Complete service pricing and submission will be enabled when this service API is configured.", confirmButtonColor: "#2952ff" })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2952ff] px-7 py-3 text-sm font-black text-white shadow-lg shadow-blue-200">Continue to review <ArrowRight size={16} /></button></div>
+          </footer>
+        </article>
       </div>
     </div>
   );
 }
 
+function ComplianceServiceDetailView({ service, category, onBack }) {
+  if (service.id === "certificate-of-origin") {
+    return <CertificateOfOriginWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "iem-registration") {
+    return <IemRegistrationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "industrial-licence") {
+    return <IndustrialLicenseWorkflow service={service} onBack={onBack} />;
+  }
+
+  return <UniversalServiceWorkflow service={service} category={category} onBack={onBack} />;
+}
+
 export default function ServiceStore() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedComplianceServiceId, setSelectedComplianceServiceId] = useState(null);
+  const [expandedCategoryId, setExpandedCategoryId] = useState("compliance");
+  const [serviceQuery, setServiceQuery] = useState("");
   const { categoryId, serviceId } = useMemo(
     () => mapPathToState(location.pathname),
     [location.pathname]
   );
 
-  useEffect(() => {
-    setSelectedComplianceServiceId(serviceId || null);
-  }, [serviceId]);
+  const selectedComplianceServiceId = serviceId || null;
 
   const selectedCategory = SERVICE_STORE_CATEGORIES.find(
     category => category.id === categoryId
@@ -1126,10 +1439,11 @@ export default function ServiceStore() {
   const selectedService = COMPLIANCE_SERVICES.find(
     service => service.id === selectedComplianceServiceId
   );
-
-  const handleCategorySelect = category => {
-    navigate(category.path);
-  };
+  const selectedCategoryService = selectedCategory?.id !== "compliance"
+    ? (CATEGORY_SERVICE_GROUPS[selectedCategory?.id] || []).find(
+        service => service.id === serviceId
+      )
+    : null;
 
   const handleServiceSelect = service => {
     navigate(`/client/service-store/compliance/${service.id}`);
@@ -1149,20 +1463,34 @@ export default function ServiceStore() {
   };
 
   const goToRoot = () => {
-    setSelectedComplianceServiceId(null);
     navigate("/client/service-store");
   };
 
-  const goToCompliance = () => {
-    setSelectedComplianceServiceId(null);
-    navigate("/client/service-store/compliance");
+  const getCategoryServices = categoryIdValue =>
+    categoryIdValue === "compliance"
+      ? COMPLIANCE_SERVICES
+      : CATEGORY_SERVICE_GROUPS[categoryIdValue] || [];
+
+  const openAccordionService = (category, service) => {
+    navigate(`${category.path}/${service.id}`);
   };
 
   if (selectedCategory?.id === "compliance" && selectedService) {
     return (
       <ComplianceServiceDetailView
         service={selectedService}
-        onBack={goToCompliance}
+        category={selectedCategory}
+        onBack={goToRoot}
+      />
+    );
+  }
+
+  if (selectedCategoryService) {
+    return (
+      <UniversalServiceWorkflow
+        service={selectedCategoryService}
+        category={selectedCategory}
+        onBack={() => navigate(selectedCategory.path)}
       />
     );
   }
@@ -1307,32 +1635,120 @@ export default function ServiceStore() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-7rem)]">
-      <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
-        <section className="overflow-hidden rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfcff_100%)] shadow-[0_24px_70px_rgba(15,23,42,0.06)]">
-          <div className="border-b border-slate-100 px-6 py-7 md:px-8">
-            <p className="text-sm font-black uppercase tracking-[0.28em] text-slate-400">
-              Service Store
-            </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-              Service Store
+    <div className="dashboard-page">
+      <section className="service-store-shell">
+        <div className="service-store-heading">
+          <div>
+            <p className="premium-kicker">Services available</p>
+            <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 md:text-3xl">
+              Apply for services
             </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-              Browse the available service categories and open the right workflow from one place.
+            <p className="mt-2 text-sm text-slate-500">
+              Select a category below to view and start its available services.
             </p>
           </div>
+          <label className="service-store-search">
+            <Search size={16} />
+            <input
+              value={serviceQuery}
+              onChange={event => setServiceQuery(event.target.value)}
+              placeholder="Search services"
+              aria-label="Search services"
+            />
+          </label>
+        </div>
 
-          <div className="grid gap-5 px-6 py-6 md:grid-cols-2 md:px-8 xl:grid-cols-3">
-            {SERVICE_STORE_CATEGORIES.map(category => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                onSelect={handleCategorySelect}
-              />
-            ))}
+        <div className="service-store-scroll custom-scrollbar">
+          <div className="space-y-2.5">
+            {SERVICE_STORE_CATEGORIES.map(category => {
+              const Icon = category.icon;
+              const services = getCategoryServices(category.id).filter(service =>
+                `${service.title} ${service.subtitle || ""}`
+                  .toLowerCase()
+                  .includes(serviceQuery.trim().toLowerCase())
+              );
+              const isExpanded = expandedCategoryId === category.id;
+
+              if (serviceQuery && services.length === 0) {
+                return null;
+              }
+
+              return (
+                <article
+                  key={category.id}
+                  className={`service-accordion ${isExpanded ? "is-expanded" : ""}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedCategoryId(current =>
+                        current === category.id ? null : category.id
+                      )
+                    }
+                    className="service-accordion-trigger"
+                    aria-expanded={isExpanded}
+                  >
+                    <span className="service-category-icon">
+                      <Icon size={19} />
+                    </span>
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="block truncate text-sm font-extrabold text-slate-900 md:text-[15px]">
+                        {category.title}
+                      </span>
+                      <span className="mt-0.5 hidden truncate text-[11px] text-slate-500 sm:block">
+                        {category.eyebrow}
+                      </span>
+                    </span>
+                    <span className="mr-2 hidden rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 sm:block">
+                      {services.length} services
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className={`text-slate-400 transition-transform duration-200 ${
+                        isExpanded ? "rotate-180 text-[#3157ff]" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <div className={`service-accordion-content ${isExpanded ? "is-open" : ""}`}>
+                    <div className="grid gap-2 border-t border-slate-200/70 p-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {services.map(service => {
+                        const ServiceIcon = service.icon || FileText;
+                        return (
+                          <button
+                            key={service.id}
+                            type="button"
+                            onClick={() => openAccordionService(category, service)}
+                            className="service-list-item"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#3157ff]">
+                              <ServiceIcon size={17} />
+                            </span>
+                            <span className="min-w-0 flex-1 text-left">
+                              <span className="block truncate text-xs font-bold text-slate-800">
+                                {service.title}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[10px] text-slate-500">
+                                {service.subtitle}
+                              </span>
+                            </span>
+                            <ChevronRight size={15} className="shrink-0 text-slate-400" />
+                          </button>
+                        );
+                      })}
+                      {!services.length ? (
+                        <p className="col-span-full px-3 py-5 text-center text-xs text-slate-400">
+                          No services match your search.
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
