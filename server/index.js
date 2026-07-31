@@ -12,6 +12,21 @@ import { createFinanceRouter } from "./routes/finance.routes.js";
 import { createAdminServiceRequestRouter } from "./routes/adminServiceRequest.routes.js";
 import { createIemRegistrationRouter } from "./routes/iemRegistration.routes.js";
 import { createIndustrialLicenseRouter } from "./routes/industrialLicense.routes.js";
+import { createWpcEtaRouter } from "./routes/wpcEta.routes.js";
+import { createUnIipRouter } from "./routes/unIip.routes.js";
+import { createGstReturnsAuditRouter } from "./routes/gstReturnsAudit.routes.js";
+import { createGstLutRouter } from "./routes/gstLut.routes.js";
+import { createCdscoRouter } from "./routes/cdsco.routes.js";
+import { createAqcsPqmsRouter } from "./routes/aqcsPqms.routes.js";
+import { createWarehouseLicenseRouter } from "./routes/warehouseLicense.routes.js";
+import { createDscServicesRouter } from "./routes/dscServices.routes.js";
+import { createEbrcRouter } from "./routes/ebrc.routes.js";
+import { createEpcgRouter } from "./routes/epcg.routes.js";
+import { createIgcrReturnRouter } from "./routes/igcrReturn.routes.js";
+import { createPollutionControlRouter } from "./routes/pollutionControl.routes.js";
+import { createCaCertificationRouter } from "./routes/caCertification.routes.js";
+import { createLmpcRouter } from "./routes/lmpc.routes.js";
+import { createEprAuthorizationRouter } from "./routes/eprAuthorization.routes.js";
 import { createRequestWorkflowRouters } from "./routes/requestWorkflow.routes.js";
 import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
 
@@ -406,6 +421,63 @@ app.use(
   "/service-store/industrial-licence",
   createIndustrialLicenseRouter({ requireAuth })
 );
+app.use(
+  "/service-store/wpc-licence",
+  createWpcEtaRouter({ requireAuth })
+);
+app.use(
+  "/service-store/epcg",
+  createEpcgRouter({ requireAuth })
+);
+app.use(
+  "/service-store/igcr-return",
+  createIgcrReturnRouter({ requireAuth })
+);
+app.use(
+  "/service-store/pollution-control",
+  createPollutionControlRouter({ requireAuth })
+);
+app.use(
+  "/service-store/ca-certification",
+  createCaCertificationRouter({ requireAuth })
+);
+app.use(
+  "/service-store/lmpc",
+  createLmpcRouter({ requireAuth })
+);
+app.use(
+  "/service-store/epr-authorisation",
+  createEprAuthorizationRouter({ requireAuth })
+);
+app.use(
+  "/service-store/un-iip-certificate",
+  createUnIipRouter({ requireAuth })
+);
+app.use(
+  "/service-store/gst-return",
+  createGstReturnsAuditRouter({ requireAuth })
+);
+app.use(
+  "/service-store/gst-lut-filing",
+  createGstLutRouter({ requireAuth })
+);
+app.use(
+  "/service-store/cdsco-drug-control",
+  createCdscoRouter({ requireAuth })
+);
+app.use(
+  "/service-store/aqcs-pqms",
+  createAqcsPqmsRouter({ requireAuth })
+);
+app.use(
+  "/service-store/warehouse-license",
+  createWarehouseLicenseRouter({ requireAuth })
+);
+app.use(
+  "/service-store/dsc-services",
+  createDscServicesRouter({ requireAuth })
+);
+app.use("/service-store/ebrc", createEbrcRouter({ requireAuth }));
 app.use("/auth/wallet", createFinanceRouter({ requireAuth }));
 app.use("/auth/admin/dashboard", createAdminDashboardRouter({ requireAuth, requireAdmin }));
 app.use(

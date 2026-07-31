@@ -3,6 +3,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import IemRegistrationWorkflow from "./IemRegistrationWorkflow";
 import IndustrialLicenseWorkflow from "./IndustrialLicenseWorkflow";
+import WpcEtaWorkflow from "./WpcEtaWorkflow";
+import UnIipPackagingAuditWorkflow from "./UnIipPackagingAuditWorkflow";
+import GstReturnsAuditWorkflow from "./GstReturnsAuditWorkflow";
+import GstLutUndertakingWorkflow from "./GstLutUndertakingWorkflow";
+import CdscoImportAuthorizationWorkflow from "./CdscoImportAuthorizationWorkflow";
+import AqcsPqmsWorkflow from "./AqcsPqmsWorkflow";
+import WarehouseLicenseWorkflow from "./WarehouseLicenseWorkflow";
+import DscServicesWorkflow from "./DscServicesWorkflow";
+import EbrcWorkflow from "./EbrcWorkflow";
+import EpcgWorkflow from "./EpcgWorkflow";
+import IgcrReturnWorkflow from "./IgcrReturnWorkflow";
+import PollutionControlWorkflow from "./PollutionControlWorkflow";
+import CaCertificationWorkflow from "./CaCertificationWorkflow";
+import LmpcWorkflow from "./LmpcWorkflow";
+import EprAuthorizationWorkflow from "./EprAuthorizationWorkflow";
 import {
   getCertificateOfOriginConfiguration,
   getCertificateOfOriginLedger,
@@ -172,25 +187,25 @@ const COMPLIANCE_SERVICES = [
   },
   {
     id: "un-iip-certificate",
-    title: "UN IIP Certificate",
-    subtitle: "Hazard goods packaging compliance",
-    caption: "UN certification and inspection workflow",
+    title: "UN IIP Packaging Audit",
+    subtitle: "Hazardous goods packaging audit",
+    caption: "UN performance testing and IIP certification workflow",
     icon: PackageCheck,
     aliases: ["un-iip-certificate", "un-iip", "uniip"]
   },
   {
     id: "gst-return",
-    title: "GST Return",
-    subtitle: "Periodic GST filing",
-    caption: "Return preparation and submission support",
+    title: "GST Returns & ITC Audit",
+    subtitle: "Returns and input tax credit reconciliation",
+    caption: "Monthly, annual, and ITC audit workflow",
     icon: ReceiptText,
     aliases: ["gst-return", "gst-returns", "gstr"]
   },
   {
     id: "gst-lut-filing",
-    title: "GST LUT Filing",
-    subtitle: "LUT application and renewal",
-    caption: "Export LUT filing support",
+    title: "GST LUT Undertaking",
+    subtitle: "RFD-11 application and annual renewal",
+    caption: "Zero-rated export undertaking workflow",
     icon: ScrollText,
     aliases: ["gst-lut-filing", "gst-lut", "lut"]
   },
@@ -1416,6 +1431,51 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
   }
   if (service.id === "industrial-licence") {
     return <IndustrialLicenseWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "wpc-licence") {
+    return <WpcEtaWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "epcg") {
+    return <EpcgWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "igcr-return") {
+    return <IgcrReturnWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "pollution-control") {
+    return <PollutionControlWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "ca-certification") {
+    return <CaCertificationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "lmpc") {
+    return <LmpcWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "epr-authorisation") {
+    return <EprAuthorizationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "un-iip-certificate") {
+    return <UnIipPackagingAuditWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "gst-return") {
+    return <GstReturnsAuditWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "gst-lut-filing") {
+    return <GstLutUndertakingWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "cdsco-drug-control") {
+    return <CdscoImportAuthorizationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "aqcs-pqms") {
+    return <AqcsPqmsWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "warehouse-license") {
+    return <WarehouseLicenseWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "dsc-services") {
+    return <DscServicesWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "ebrc") {
+    return <EbrcWorkflow service={service} onBack={onBack} />;
   }
 
   return <UniversalServiceWorkflow service={service} category={category} onBack={onBack} />;

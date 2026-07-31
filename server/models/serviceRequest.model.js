@@ -23,6 +23,19 @@ export async function findFinancialContext(userId) {
   return result.rows[0] || { wallet_balance: 0, credit_line_balance: 0, credit_limit: 0 };
 }
 
+export async function findClientServiceIdentity(userId) {
+  const result = await pool.query(
+    `SELECT COALESCE(cp.data->>'iec_number','') AS iec_number,
+            COALESCE(cp.data->>'gstin',cp.data->>'gst_number',cp.data->'gstin_details'->0->>'gstin','') AS gstin,
+            COALESCE(cp.data->>'firm_name',cp.data->>'company_name',u.name,'') AS company_name
+       FROM users u
+       LEFT JOIN company_profiles cp ON cp.user_id=u.id
+      WHERE u.id=$1`,
+    [userId]
+  );
+  return result.rows[0] || { iec_number: "", gstin: "", company_name: "" };
+}
+
 export async function createServiceRequest({ userId, serviceSlug, payload, pricingSnapshot }) {
   const result = await pool.query(
     `INSERT INTO service_requests(user_id,service_slug,status,payload,pricing_snapshot)

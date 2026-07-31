@@ -1,0 +1,14 @@
+import { unlink } from "node:fs/promises";
+import { resolve } from "node:path";
+import { getIgcrConfiguration, getIgcrDocument, getIgcrLedger, getIgcrQuote, getIgcrRequests, removeIgcrDocument, saveIgcrDraft, storeIgcrDocument, submitIgcr } from "../services/igcrReturn.service.js";
+import { validateIgcrQuote, validateIgcrRequest } from "../validations/igcrReturn.validation.js";
+const uploadDirectory = resolve("server/uploads/igcr-return"); const removeFile = async name => name && unlink(resolve(uploadDirectory, name)).catch(() => {});
+export async function getConfiguration(req,res,next){try{res.json(await getIgcrConfiguration(req.user.id));}catch(e){next(e);}}
+export async function getQuote(req,res,next){try{const v=validateIgcrQuote(req.body);if(!v.valid)return res.status(422).json({message:"Invalid IGCR quote",errors:v.errors});res.json(await getIgcrQuote(req.user.id,v.value.requestType));}catch(e){next(e);}}
+export async function getRequests(req,res,next){try{res.json({requests:await getIgcrRequests(req.user.id)});}catch(e){next(e);}}
+export async function getLedger(req,res,next){try{res.json(await getIgcrLedger(req.user.id));}catch(e){next(e);}}
+export async function saveDraft(req,res,next){try{const v=validateIgcrRequest(req.body);if(!v.valid)return res.status(422).json({message:"Invalid IGCR draft",errors:v.errors});const request=await saveIgcrDraft(req.user.id,v.value);res.status(v.value.requestId?200:201).json({request});}catch(e){next(e);}}
+export async function submitRequest(req,res,next){try{const v=validateIgcrRequest(req.body,{requireComplete:true});if(!v.valid)return res.status(422).json({message:"Complete all required IGCR information",errors:v.errors});res.json(await submitIgcr(req.user.id,v.value));}catch(e){next(e);}}
+export async function uploadDocument(req,res,next){try{if(!req.file)return res.status(400).json({message:"Select a document to upload"});const result=await storeIgcrDocument({userId:req.user.id,requestId:req.params.requestId,documentKey:req.params.documentKey,file:req.file});await removeFile(result.previousStoredName);const d=result.document;res.status(201).json({document:{id:d.id,documentKey:d.document_key,name:d.original_name,mimeType:d.mime_type,size:Number(d.size_bytes),uploadedAt:d.uploaded_at,status:"Uploaded"}});}catch(e){if(req.file?.filename)await removeFile(req.file.filename);next(e);}}
+export async function deleteDocument(req,res,next){try{const d=await removeIgcrDocument(req.user.id,req.params.requestId,req.params.documentKey);if(!d)return res.status(404).json({message:"IGCR document not found"});await removeFile(d.stored_name);res.status(204).end();}catch(e){next(e);}}
+export async function downloadDocument(req,res,next){try{const d=await getIgcrDocument(req.user.id,req.params.requestId,req.params.documentKey);if(!d)return res.status(404).json({message:"IGCR document not found"});res.download(resolve(uploadDirectory,d.stored_name),d.original_name);}catch(e){next(e);}}
