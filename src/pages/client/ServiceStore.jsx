@@ -26,7 +26,7 @@ import {
   removeCertificateOfOriginDocument,
   saveCertificateOfOriginDraft,
   submitCertificateOfOrigin,
-  uploadCertificateOfOriginDocument
+  uploadCertificateOfOriginDocument,
 } from "../../services/certificateOfOriginService";
 import {
   ArrowLeft,
@@ -66,7 +66,7 @@ import {
   Waves,
   Wrench,
   X,
-  Zap
+  Zap,
 } from "lucide-react";
 
 const SERVICE_STORE_CATEGORIES = [
@@ -78,7 +78,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Certification, return filing, licensing, and regulated documentation services.",
     icon: ShieldCheck,
-    available: true
+    available: true,
   },
   {
     id: "licensing",
@@ -88,7 +88,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Structured licensing workflows and approval-led service requests.",
     icon: Landmark,
-    available: true
+    available: true,
   },
   {
     id: "registration",
@@ -98,7 +98,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Registration-oriented services for regulated business onboarding.",
     icon: BriefcaseBusiness,
-    available: true
+    available: true,
   },
   {
     id: "incentives",
@@ -108,7 +108,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Incentive-oriented workflows and claim-linked support services.",
     icon: ReceiptText,
-    available: true
+    available: true,
   },
   {
     id: "custom-filing",
@@ -118,7 +118,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Custom filing and documentation support across governed submissions.",
     icon: FileSpreadsheet,
-    available: true
+    available: true,
   },
   {
     id: "dispute-resolution",
@@ -128,7 +128,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Resolution-led workflows for notices, disputes, and response handling.",
     icon: Shield,
-    available: true
+    available: true,
   },
   {
     id: "iso-trademark",
@@ -138,7 +138,7 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Quality system and mark protection categories under one parent menu.",
     icon: Stamp,
-    available: true
+    available: true,
   },
   {
     id: "logistics",
@@ -148,8 +148,8 @@ const SERVICE_STORE_CATEGORIES = [
     description:
       "Operational support for shipping, handling, and logistics activities.",
     icon: Globe,
-    available: true
-  }
+    available: true,
+  },
 ];
 
 const COMPLIANCE_SERVICES = [
@@ -159,7 +159,12 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Origin certification support",
     caption: "Chamber-certified export origin documentation workflow",
     icon: ScrollText,
-    aliases: ["certificate-of-origin", "coo", "certificate-origin", "origin-certificate"]
+    aliases: [
+      "certificate-of-origin",
+      "coo",
+      "certificate-origin",
+      "origin-certificate",
+    ],
   },
   {
     id: "iem-registration",
@@ -167,7 +172,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Industrial entrepreneur filing",
     caption: "DPIIT and manufacturing setup support",
     icon: BriefcaseBusiness,
-    aliases: ["iem-registration", "iem"]
+    aliases: ["iem-registration", "iem"],
   },
   {
     id: "industrial-licence",
@@ -175,7 +180,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Industrial approval workflow",
     caption: "Licensing support for controlled sectors",
     icon: Factory,
-    aliases: ["industrial-licence", "industrial-license", "industrial"]
+    aliases: ["industrial-licence", "industrial-license", "industrial"],
   },
   {
     id: "wpc-licence",
@@ -183,7 +188,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Wireless planning compliance",
     caption: "WPC documentation and filing support",
     icon: Radio,
-    aliases: ["wpc-licence", "wpc-license", "wpc"]
+    aliases: ["wpc-licence", "wpc-license", "wpc"],
   },
   {
     id: "un-iip-certificate",
@@ -191,7 +196,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Hazardous goods packaging audit",
     caption: "UN performance testing and IIP certification workflow",
     icon: PackageCheck,
-    aliases: ["un-iip-certificate", "un-iip", "uniip"]
+    aliases: ["un-iip-certificate", "un-iip", "uniip"],
   },
   {
     id: "gst-return",
@@ -199,7 +204,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Returns and input tax credit reconciliation",
     caption: "Monthly, annual, and ITC audit workflow",
     icon: ReceiptText,
-    aliases: ["gst-return", "gst-returns", "gstr"]
+    aliases: ["gst-return", "gst-returns", "gstr"],
   },
   {
     id: "gst-lut-filing",
@@ -207,7 +212,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "RFD-11 application and annual renewal",
     caption: "Zero-rated export undertaking workflow",
     icon: ScrollText,
-    aliases: ["gst-lut-filing", "gst-lut", "lut"]
+    aliases: ["gst-lut-filing", "gst-lut", "lut"],
   },
   {
     id: "cdsco-drug-control",
@@ -215,7 +220,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Drug and device regulatory compliance",
     caption: "Documentation for controlled product imports",
     icon: FileCheck2,
-    aliases: ["cdsco-drug-control", "cdsco", "drug-control"]
+    aliases: ["cdsco-drug-control", "cdsco", "drug-control"],
   },
   {
     id: "aqcs-pqms",
@@ -223,7 +228,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Animal and plant quarantine compliance",
     caption: "Inspection, NOC, and quarantine documentation",
     icon: Waves,
-    aliases: ["aqcs-pqms", "aqcs", "pqms"]
+    aliases: ["aqcs-pqms", "aqcs", "pqms"],
   },
   {
     id: "warehouse-license",
@@ -231,7 +236,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Warehouse approval and registration",
     caption: "Bonded and operational warehouse support",
     icon: Store,
-    aliases: ["warehouse-license", "warehouse-licence", "warehouse"]
+    aliases: ["warehouse-license", "warehouse-licence", "warehouse"],
   },
   {
     id: "dsc-services",
@@ -239,7 +244,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Digital signature support",
     caption: "Issuance, renewal, and usage coordination",
     icon: Stamp,
-    aliases: ["dsc-services", "dsc"]
+    aliases: ["dsc-services", "dsc"],
   },
   {
     id: "ebrc",
@@ -247,7 +252,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Single eBRC generation support",
     caption: "Bank realisation certificate processing",
     icon: FileBadge2,
-    aliases: ["ebrc"]
+    aliases: ["ebrc"],
   },
   {
     id: "bulk-ebrc",
@@ -255,7 +260,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Batch eBRC processing",
     caption: "High-volume certificate handling support",
     icon: Boxes,
-    aliases: ["bulk-ebrc", "bulk-ebrcs"]
+    aliases: ["bulk-ebrc", "bulk-ebrcs"],
   },
   {
     id: "igcr-return",
@@ -263,7 +268,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "IGCR monthly compliance",
     caption: "Imported goods concession reporting support",
     icon: FileSpreadsheet,
-    aliases: ["igcr-return", "igcr-returns", "igcr"]
+    aliases: ["igcr-return", "igcr-returns", "igcr"],
   },
   {
     id: "pollution-control",
@@ -271,7 +276,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "CTE and CTO compliance",
     caption: "State pollution board documentation support",
     icon: Leaf,
-    aliases: ["pollution-control", "pollution"]
+    aliases: ["pollution-control", "pollution"],
   },
   {
     id: "ca-certification",
@@ -279,7 +284,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Certified financial declarations",
     caption: "Chartered accountant certificate coordination",
     icon: Building2,
-    aliases: ["ca-certification", "ca-certificate", "ca"]
+    aliases: ["ca-certification", "ca-certificate", "ca"],
   },
   {
     id: "lmpc",
@@ -287,7 +292,7 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Legal metrology compliance",
     caption: "Packaged commodity importer support",
     icon: Truck,
-    aliases: ["lmpc", "legal-metrology"]
+    aliases: ["lmpc", "legal-metrology"],
   },
   {
     id: "epr-authorisation",
@@ -295,59 +300,263 @@ const COMPLIANCE_SERVICES = [
     subtitle: "Extended producer responsibility",
     caption: "Waste and recycling compliance support",
     icon: Wrench,
-    aliases: ["epr-authorisation", "epr-authorization", "epr"]
-  }
+    aliases: ["epr-authorisation", "epr-authorization", "epr"],
+  },
 ];
 
 const CATEGORY_SERVICE_GROUPS = {
   licensing: [
-    { id: "advance-auth", title: "Advance Authorisation", subtitle: "DGFT authorisation workflow", caption: "End-to-end support for advance authorisation filing.", icon: FileCheck2 },
-    { id: "epcg", title: "EPCG License", subtitle: "Capital goods licensing", caption: "Application, documentation, and closure support.", icon: Factory },
-    { id: "star", title: "Star Export House", subtitle: "Exporter recognition", caption: "Status holder filing and supporting documentation.", icon: Globe },
-    { id: "rex", title: "REX Registration", subtitle: "Exporter registration", caption: "REX onboarding and certification assistance.", icon: Stamp },
-    { id: "iec", title: "IEC Services", subtitle: "Importer exporter code", caption: "IEC application, modification, and update support.", icon: Building2 }
+    {
+      id: "advance-auth",
+      title: "Advance Authorisation",
+      subtitle: "DGFT authorisation workflow",
+      caption: "End-to-end support for advance authorisation filing.",
+      icon: FileCheck2,
+    },
+    {
+      id: "epcg",
+      title: "EPCG License",
+      subtitle: "Capital goods licensing",
+      caption: "Application, documentation, and closure support.",
+      icon: Factory,
+    },
+    {
+      id: "star",
+      title: "Star Export House",
+      subtitle: "Exporter recognition",
+      caption: "Status holder filing and supporting documentation.",
+      icon: Globe,
+    },
+    {
+      id: "rex",
+      title: "REX Registration",
+      subtitle: "Exporter registration",
+      caption: "REX onboarding and certification assistance.",
+      icon: Stamp,
+    },
+    {
+      id: "iec",
+      title: "IEC Services",
+      subtitle: "Importer exporter code",
+      caption: "IEC application, modification, and update support.",
+      icon: Building2,
+    },
   ],
   registration: [
-    { id: "fssai", title: "FSSAI Registration", subtitle: "Food business compliance", caption: "Registration and licensing support for food imports.", icon: FileCheck2 },
-    { id: "bis", title: "BIS Registration", subtitle: "Product certification", caption: "BIS documentation and registration workflow.", icon: ShieldCheck },
-    { id: "cdsco", title: "CDSCO Registration", subtitle: "Drug and device onboarding", caption: "Regulatory registration support for controlled products.", icon: FileBadge2 },
-    { id: "aqcs", title: "AQCS & PQMS", subtitle: "Quarantine registration", caption: "Animal and plant quarantine support.", icon: Waves },
-    { id: "legal-metrology", title: "Legal Metrology", subtitle: "Packaged commodity setup", caption: "LMPC registration and documentation support.", icon: Scale }
+    {
+      id: "fssai",
+      title: "FSSAI Registration",
+      subtitle: "Food business compliance",
+      caption: "Registration and licensing support for food imports.",
+      icon: FileCheck2,
+    },
+    {
+      id: "bis",
+      title: "BIS Registration",
+      subtitle: "Product certification",
+      caption: "BIS documentation and registration workflow.",
+      icon: ShieldCheck,
+    },
+    {
+      id: "cdsco",
+      title: "CDSCO Registration",
+      subtitle: "Drug and device onboarding",
+      caption: "Regulatory registration support for controlled products.",
+      icon: FileBadge2,
+    },
+    {
+      id: "aqcs",
+      title: "AQCS & PQMS",
+      subtitle: "Quarantine registration",
+      caption: "Animal and plant quarantine support.",
+      icon: Waves,
+    },
+    {
+      id: "legal-metrology",
+      title: "Legal Metrology",
+      subtitle: "Packaged commodity setup",
+      caption: "LMPC registration and documentation support.",
+      icon: Scale,
+    },
   ],
   incentives: [
-    { id: "rodtep", title: "RoDTEP Claims", subtitle: "Export remission benefits", caption: "Claim preparation and reconciliation support.", icon: ReceiptText },
-    { id: "rosctl", title: "RoSCTL Claims", subtitle: "Textile incentive support", caption: "Scheme filing and claim documentation.", icon: Receipt },
-    { id: "duty", title: "Duty Drawback", subtitle: "Refund processing", caption: "Drawback claim review and filing support.", icon: CreditCard },
-    { id: "interest", title: "Interest Equalisation", subtitle: "Finance incentive", caption: "Eligibility review and claim assistance.", icon: Wallet },
-    { id: "igst", title: "IGST Refund", subtitle: "Export tax refund", caption: "Refund tracking and filing support.", icon: Download }
+    {
+      id: "rodtep",
+      title: "RoDTEP Claims",
+      subtitle: "Export remission benefits",
+      caption: "Claim preparation and reconciliation support.",
+      icon: ReceiptText,
+    },
+    {
+      id: "rosctl",
+      title: "RoSCTL Claims",
+      subtitle: "Textile incentive support",
+      caption: "Scheme filing and claim documentation.",
+      icon: Receipt,
+    },
+    {
+      id: "duty",
+      title: "Duty Drawback",
+      subtitle: "Refund processing",
+      caption: "Drawback claim review and filing support.",
+      icon: CreditCard,
+    },
+    {
+      id: "interest",
+      title: "Interest Equalisation",
+      subtitle: "Finance incentive",
+      caption: "Eligibility review and claim assistance.",
+      icon: Wallet,
+    },
+    {
+      id: "igst",
+      title: "IGST Refund",
+      subtitle: "Export tax refund",
+      caption: "Refund tracking and filing support.",
+      icon: Download,
+    },
   ],
   "custom-filing": [
-    { id: "moowr", title: "MOOWR Filing", subtitle: "Warehouse manufacturing", caption: "MOOWR registration and filing workflow.", icon: Factory },
-    { id: "dpd", title: "DPD Registration", subtitle: "Direct port delivery", caption: "DPD onboarding and documentation support.", icon: Truck },
-    { id: "rmcc", title: "RMCC Support", subtitle: "Customs coordination", caption: "RMCC filing and response assistance.", icon: Shield },
-    { id: "svb", title: "SVB Filing", subtitle: "Valuation branch support", caption: "SVB documentation and submission workflow.", icon: Scale },
-    { id: "factory-stuffing", title: "Factory Stuffing", subtitle: "Export logistics filing", caption: "Permission and compliance documentation.", icon: PackageCheck }
+    {
+      id: "moowr",
+      title: "MOOWR Filing",
+      subtitle: "Warehouse manufacturing",
+      caption: "MOOWR registration and filing workflow.",
+      icon: Factory,
+    },
+    {
+      id: "dpd",
+      title: "DPD Registration",
+      subtitle: "Direct port delivery",
+      caption: "DPD onboarding and documentation support.",
+      icon: Truck,
+    },
+    {
+      id: "rmcc",
+      title: "RMCC Support",
+      subtitle: "Customs coordination",
+      caption: "RMCC filing and response assistance.",
+      icon: Shield,
+    },
+    {
+      id: "svb",
+      title: "SVB Filing",
+      subtitle: "Valuation branch support",
+      caption: "SVB documentation and submission workflow.",
+      icon: Scale,
+    },
+    {
+      id: "factory-stuffing",
+      title: "Factory Stuffing",
+      subtitle: "Export logistics filing",
+      caption: "Permission and compliance documentation.",
+      icon: PackageCheck,
+    },
   ],
   "dispute-resolution": [
-    { id: "dgft-relaxation", title: "DGFT Relaxation", subtitle: "Policy relaxation request", caption: "Representation drafting and filing support.", icon: FileText },
-    { id: "customs-defense", title: "Customs Defence", subtitle: "Customs notice support", caption: "Response and hearing documentation.", icon: Shield },
-    { id: "scn-reply", title: "SCN Reply", subtitle: "Show cause response", caption: "Drafting, evidence mapping, and submission support.", icon: ScrollText },
-    { id: "appeal-support", title: "Appeal Support", subtitle: "Dispute escalation", caption: "Appeal filing and documentation workflow.", icon: BriefcaseBusiness },
-    { id: "ca-certification", title: "CA Certification", subtitle: "Certified declarations", caption: "Chartered accountant certificate coordination.", icon: Building2 }
+    {
+      id: "dgft-relaxation",
+      title: "DGFT Relaxation",
+      subtitle: "Policy relaxation request",
+      caption: "Representation drafting and filing support.",
+      icon: FileText,
+    },
+    {
+      id: "customs-defense",
+      title: "Customs Defence",
+      subtitle: "Customs notice support",
+      caption: "Response and hearing documentation.",
+      icon: Shield,
+    },
+    {
+      id: "scn-reply",
+      title: "SCN Reply",
+      subtitle: "Show cause response",
+      caption: "Drafting, evidence mapping, and submission support.",
+      icon: ScrollText,
+    },
+    {
+      id: "appeal-support",
+      title: "Appeal Support",
+      subtitle: "Dispute escalation",
+      caption: "Appeal filing and documentation workflow.",
+      icon: BriefcaseBusiness,
+    },
+    {
+      id: "ca-certification",
+      title: "CA Certification",
+      subtitle: "Certified declarations",
+      caption: "Chartered accountant certificate coordination.",
+      icon: Building2,
+    },
   ],
   "iso-trademark": [
-    { id: "iso", title: "ISO Certification", subtitle: "Quality certification", caption: "ISO documentation and audit coordination.", icon: FileCheck2 },
-    { id: "trademark", title: "Trademark Filing", subtitle: "Brand filing support", caption: "Trademark search, filing, and tracking workflow.", icon: Stamp },
-    { id: "brand-protection", title: "Brand Protection", subtitle: "IP protection support", caption: "Monitoring and response support for brand assets.", icon: ShieldCheck },
-    { id: "audit-support", title: "Audit Support", subtitle: "Certification readiness", caption: "Document readiness and gap review.", icon: ClipboardList }
+    {
+      id: "iso",
+      title: "ISO Certification",
+      subtitle: "Quality certification",
+      caption: "ISO documentation and audit coordination.",
+      icon: FileCheck2,
+    },
+    {
+      id: "trademark",
+      title: "Trademark Filing",
+      subtitle: "Brand filing support",
+      caption: "Trademark search, filing, and tracking workflow.",
+      icon: Stamp,
+    },
+    {
+      id: "brand-protection",
+      title: "Brand Protection",
+      subtitle: "IP protection support",
+      caption: "Monitoring and response support for brand assets.",
+      icon: ShieldCheck,
+    },
+    {
+      id: "audit-support",
+      title: "Audit Support",
+      subtitle: "Certification readiness",
+      caption: "Document readiness and gap review.",
+      icon: ClipboardList,
+    },
   ],
   logistics: [
-    { id: "freight", title: "Freight Coordination", subtitle: "Shipment movement", caption: "Freight planning and coordination support.", icon: Truck },
-    { id: "port-operations", title: "Port Operations", subtitle: "Port handling support", caption: "Port process coordination and documentation.", icon: PackageCheck },
-    { id: "warehouse", title: "Warehouse Coordination", subtitle: "Storage workflow", caption: "Warehouse coordination and compliance support.", icon: Store },
-    { id: "shipment-tracking", title: "Shipment Tracking", subtitle: "Live movement updates", caption: "Tracking and exception management support.", icon: Globe },
-    { id: "documentation-desk", title: "Documentation Desk", subtitle: "Logistics paperwork", caption: "Shipping document review and preparation.", icon: FileSpreadsheet }
-  ]
+    {
+      id: "freight",
+      title: "Freight Coordination",
+      subtitle: "Shipment movement",
+      caption: "Freight planning and coordination support.",
+      icon: Truck,
+    },
+    {
+      id: "port-operations",
+      title: "Port Operations",
+      subtitle: "Port handling support",
+      caption: "Port process coordination and documentation.",
+      icon: PackageCheck,
+    },
+    {
+      id: "warehouse",
+      title: "Warehouse Coordination",
+      subtitle: "Storage workflow",
+      caption: "Warehouse coordination and compliance support.",
+      icon: Store,
+    },
+    {
+      id: "shipment-tracking",
+      title: "Shipment Tracking",
+      subtitle: "Live movement updates",
+      caption: "Tracking and exception management support.",
+      icon: Globe,
+    },
+    {
+      id: "documentation-desk",
+      title: "Documentation Desk",
+      subtitle: "Logistics paperwork",
+      caption: "Shipping document review and preparation.",
+      icon: FileSpreadsheet,
+    },
+  ],
 };
 
 function slugifySegment(value) {
@@ -374,7 +583,7 @@ const SERVICE_STORE_SEGMENT_ALIASES = {
   "licensing-incentive": "licensing",
   "customs-portops": "logistics",
   "legal-audit": "dispute-resolution",
-  "regulatory-bis": "registration"
+  "regulatory-bis": "registration",
 };
 
 function normalizeServiceStoreSegment(segment) {
@@ -394,12 +603,16 @@ function mapPathToState(pathname) {
   if (serviceStoreIndex === -1) {
     return {
       categoryId: null,
-      serviceId: null
+      serviceId: null,
     };
   }
 
-  const categorySegment = normalizeServiceStoreSegment(parts[serviceStoreIndex + 1]);
-  const serviceSegment = normalizeServiceStoreSegment(parts[serviceStoreIndex + 2]);
+  const categorySegment = normalizeServiceStoreSegment(
+    parts[serviceStoreIndex + 1],
+  );
+  const serviceSegment = normalizeServiceStoreSegment(
+    parts[serviceStoreIndex + 2],
+  );
   const findComplianceService = (segment) => {
     const normalizedSegment = normalizeServiceStoreSegment(segment);
 
@@ -409,8 +622,8 @@ function mapPathToState(pathname) {
 
     const exactMatch = COMPLIANCE_SERVICES.find((service) =>
       service.aliases.some(
-        (alias) => normalizeServiceStoreSegment(alias) === normalizedSegment
-      )
+        (alias) => normalizeServiceStoreSegment(alias) === normalizedSegment,
+      ),
     );
 
     if (exactMatch) {
@@ -425,7 +638,7 @@ function mapPathToState(pathname) {
           normalizedAlias.startsWith(`${normalizedSegment}-`) ||
           normalizedSegment.startsWith(`${normalizedAlias}-`)
         );
-      })
+      }),
     );
   };
 
@@ -434,7 +647,7 @@ function mapPathToState(pathname) {
 
     return {
       categoryId: "compliance",
-      serviceId: matchedService?.id || null
+      serviceId: matchedService?.id || null,
     };
   }
 
@@ -443,29 +656,29 @@ function mapPathToState(pathname) {
   if (directComplianceService) {
     return {
       categoryId: "compliance",
-      serviceId: directComplianceService.id
+      serviceId: directComplianceService.id,
     };
   }
 
   const matchedCategory = SERVICE_STORE_CATEGORIES.find(
-    (category) => normalizeServiceStoreSegment(category.id) === categorySegment
+    (category) => normalizeServiceStoreSegment(category.id) === categorySegment,
   );
 
   if (matchedCategory) {
     const categoryServices = CATEGORY_SERVICE_GROUPS[matchedCategory.id] || [];
     const matchedService = categoryServices.find(
-      service => normalizeServiceStoreSegment(service.id) === serviceSegment
+      (service) => normalizeServiceStoreSegment(service.id) === serviceSegment,
     );
 
     return {
       categoryId: matchedCategory.id,
-      serviceId: matchedService?.id || null
+      serviceId: matchedService?.id || null,
     };
   }
 
   return {
     categoryId: null,
-    serviceId: null
+    serviceId: null,
   };
 }
 
@@ -532,7 +745,9 @@ function ComplianceServiceCard({ service, isSelected, onSelect }) {
     >
       <div
         className={`flex h-16 w-16 items-center justify-center rounded-3xl ${
-          isSelected ? "bg-[#eef3ff] text-[#2952ff]" : "bg-slate-50 text-slate-400"
+          isSelected
+            ? "bg-[#eef3ff] text-[#2952ff]"
+            : "bg-slate-50 text-slate-400"
         }`}
       >
         <Icon size={28} />
@@ -540,7 +755,9 @@ function ComplianceServiceCard({ service, isSelected, onSelect }) {
       <h3 className="mt-8 text-3xl font-black tracking-tight text-slate-900">
         {service.title}
       </h3>
-      <p className="mt-3 text-sm font-semibold text-[#2952ff]">{service.subtitle}</p>
+      <p className="mt-3 text-sm font-semibold text-[#2952ff]">
+        {service.subtitle}
+      </p>
       <p className="mt-2 text-sm text-slate-500">{service.caption}</p>
       <div className="mt-10 flex items-center justify-between">
         <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#2952ff]">
@@ -568,12 +785,19 @@ function CategoryServiceCard({ service, onSelect }) {
         <h3 className="mt-7 text-2xl font-black tracking-tight text-slate-950">
           {service.title}
         </h3>
-        <p className="mt-3 text-sm font-bold text-[#2952ff]">{service.subtitle}</p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{service.caption}</p>
+        <p className="mt-3 text-sm font-bold text-[#2952ff]">
+          {service.subtitle}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          {service.caption}
+        </p>
       </div>
       <div className="mt-6 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.22em] text-[#2952ff]">
         Click Here
-        <ArrowRight size={20} className="transition group-hover:translate-x-1" />
+        <ArrowRight
+          size={20}
+          className="transition group-hover:translate-x-1"
+        />
       </div>
     </button>
   );
@@ -600,7 +824,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     packingList: { status: "Not Uploaded", name: null },
     costSheet: { status: "Not Uploaded", name: null },
     bol: { status: "Not Uploaded", name: null },
-    mfgDecl: { status: "Not Uploaded", name: null }
+    mfgDecl: { status: "Not Uploaded", name: null },
   });
 
   useEffect(() => {
@@ -619,14 +843,16 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     Promise.all([
       getCertificateOfOriginConfiguration(),
       getCertificateOfOriginRequests(),
-      getCertificateOfOriginLedger()
+      getCertificateOfOriginLedger(),
     ])
       .then(([data, requestData, ledgerData]) => {
         if (active) {
           setConfiguration(data);
           setLedger(ledgerData);
           setLoadError("");
-          const draft = requestData.requests?.find((request) => request.status === "DRAFT");
+          const draft = requestData.requests?.find(
+            (request) => request.status === "DRAFT",
+          );
 
           if (draft) {
             const payload = draft.payload || {};
@@ -643,7 +869,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                 restoredFiles[document.documentKey] = {
                   status: "Uploaded",
                   name: document.name,
-                  size: Number(document.size || 0)
+                  size: Number(document.size || 0),
                 };
               }
               return restoredFiles;
@@ -653,7 +879,9 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
       })
       .catch(() => {
         if (active) {
-          setLoadError("Unable to load Certificate of Origin service configuration.");
+          setLoadError(
+            "Unable to load Certificate of Origin service configuration.",
+          );
         }
       });
 
@@ -687,7 +915,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     openingWalletBalance: 0,
     closingWalletBalance: 0,
     currentCreditLimit: 0,
-    availableCreditAfter: 0
+    availableCreditAfter: 0,
   };
   const walletBalance = costs.openingWalletBalance;
   const creditLineBalance = costs.currentCreditLimit;
@@ -702,7 +930,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     destinationCountry: destination,
     issuingAgency,
     agreement,
-    documents: files
+    documents: files,
   });
 
   const ensureDraft = async () => {
@@ -721,21 +949,27 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
     try {
       setUploadingDocumentId(documentId);
       const draftId = await ensureDraft();
-      const data = await uploadCertificateOfOriginDocument(draftId, documentId, file);
+      const data = await uploadCertificateOfOriginDocument(
+        draftId,
+        documentId,
+        file,
+      );
       setFiles((currentFiles) => ({
         ...currentFiles,
         [documentId]: {
           status: data.document.status,
           name: data.document.name,
-          size: data.document.size
-        }
+          size: data.document.size,
+        },
       }));
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Upload failed",
-        text: error.response?.data?.message || "The selected document could not be uploaded.",
-        confirmButtonColor: "#2952ff"
+        text:
+          error.response?.data?.message ||
+          "The selected document could not be uploaded.",
+        confirmButtonColor: "#2952ff",
       });
     } finally {
       setUploadingDocumentId(null);
@@ -749,14 +983,14 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
       await removeCertificateOfOriginDocument(requestId, documentId);
       setFiles((currentFiles) => ({
         ...currentFiles,
-        [documentId]: { status: "Not Uploaded", name: null }
+        [documentId]: { status: "Not Uploaded", name: null },
       }));
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Unable to remove document",
         text: error.response?.data?.message || "Please try again.",
-        confirmButtonColor: "#2952ff"
+        confirmButtonColor: "#2952ff",
       });
     } finally {
       setUploadingDocumentId(null);
@@ -775,7 +1009,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         icon: "error",
         title: "Unable to save draft",
         text: error.response?.data?.message || "Please try again.",
-        confirmButtonColor: "#2952ff"
+        confirmButtonColor: "#2952ff",
       });
     } finally {
       setIsSaving(false);
@@ -788,7 +1022,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         icon: "info",
         title: "Complete Information",
         text: "Fill the required fields and upload the mandatory documents to continue.",
-        confirmButtonColor: "#2952ff"
+        confirmButtonColor: "#2952ff",
       });
       return;
     }
@@ -800,7 +1034,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
       setResumedDraftCode("");
       const [quoteData, ledgerData] = await Promise.all([
         getCertificateOfOriginQuote(certType),
-        getCertificateOfOriginLedger()
+        getCertificateOfOriginLedger(),
       ]);
       setQuote(quoteData);
       setLedger(ledgerData);
@@ -808,15 +1042,15 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         new CustomEvent("wallet:updated", {
           detail: {
             balance: data.balances.walletBalance,
-            creditLine: data.balances.creditLineBalance
-          }
-        })
+            creditLine: data.balances.creditLineBalance,
+          },
+        }),
       );
       await Swal.fire({
         icon: "success",
         title: "Request submitted",
         text: `${data.request.request_code} has been sent for processing.`,
-        confirmButtonColor: "#2952ff"
+        confirmButtonColor: "#2952ff",
       });
     } catch (error) {
       const balanceCode = error.response?.data?.errors?.code;
@@ -827,7 +1061,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
           INSUFFICIENT_CREDIT_LINE:
             "Credit Line balance is insufficient. Please top up your Credit Line to continue.",
           INSUFFICIENT_WALLET_AND_CREDIT_LINE:
-            "Wallet and Credit Line balances are insufficient. Please top up both before continuing."
+            "Wallet and Credit Line balances are insufficient. Please top up both before continuing.",
         };
         const result = await Swal.fire({
           icon: "warning",
@@ -836,7 +1070,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
           showCancelButton: true,
           confirmButtonText: "Go to Wallet & Credit",
           cancelButtonText: "Stay here",
-          confirmButtonColor: "#2952ff"
+          confirmButtonColor: "#2952ff",
         });
         if (result.isConfirmed) {
           navigate("/client/wallet-credit#add-credit");
@@ -848,7 +1082,7 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         icon: "error",
         title: "Unable to submit request",
         text: error.response?.data?.message || "Please try again.",
-        confirmButtonColor: "#2952ff"
+        confirmButtonColor: "#2952ff",
       });
     } finally {
       setIsSaving(false);
@@ -867,11 +1101,13 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
         files.costSheet.status === "Uploaded"));
 
   const documentFields = (serviceConfig?.documents || [])
-    .filter((field) => field.id === "bol" || field.requiredFor?.includes(certType))
+    .filter(
+      (field) => field.id === "bol" || field.requiredFor?.includes(certType),
+    )
     .map((field) => ({
       ...field,
       req: field.requiredFor?.includes(certType),
-      sample: field.sampleAvailable
+      sample: field.sampleAvailable,
     }));
 
   return (
@@ -897,9 +1133,12 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
           <div className="mb-3 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900">
             <Save size={17} />
             <div>
-              <p className="text-xs font-bold">Draft {resumedDraftCode} restored</p>
+              <p className="text-xs font-bold">
+                Draft {resumedDraftCode} restored
+              </p>
               <p className="text-[11px] text-blue-700">
-                Continue where you left off. This request remains editable until submission.
+                Continue where you left off. This request remains editable until
+                submission.
               </p>
             </div>
           </div>
@@ -954,195 +1193,208 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
 
           <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1.45fr)_340px]">
             <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-1">
-              {(serviceConfig?.certificateTypes || []).map((type, index) => {
-                const TypeIcon = index === 0 ? Globe : Scale;
-                return (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setCertType(type.id)}
-                    className={`flex flex-col items-center gap-1 rounded-xl px-4 py-3 transition-all ${
-                      certType === type.id
-                        ? "border border-blue-100 bg-white text-blue-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    <TypeIcon size={18} />
-                    <span className="text-sm font-bold tracking-tight">{type.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                  Invoice Number
-                </label>
-                <input
-                  type="text"
-                  placeholder={serviceConfig?.invoicePlaceholder || ""}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
-                  value={invoiceNumber}
-                  onChange={(event) => setInvoiceNumber(event.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-1">
+                {(serviceConfig?.certificateTypes || []).map((type, index) => {
+                  const TypeIcon = index === 0 ? Globe : Scale;
+                  return (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => setCertType(type.id)}
+                      className={`flex flex-col items-center gap-1 rounded-xl px-4 py-3 transition-all ${
+                        certType === type.id
+                          ? "border border-blue-100 bg-white text-blue-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      <TypeIcon size={18} />
+                      <span className="text-sm font-bold tracking-tight">
+                        {type.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="space-y-1.5">
-                <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                  Issuing Agency
-                </label>
-                <div className="relative">
-                  <select
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
-                    value={issuingAgency}
-                    onChange={(event) => setIssuingAgency(event.target.value)}
-                  >
-                    <option value="">Select Chamber/Agency...</option>
-                    {(serviceConfig?.issuingAgencies || []).map((agency) => (
-                      <option key={agency.value} value={agency.value}>{agency.label}</option>
-                    ))}
-                  </select>
-                  <Building2
-                    className="pointer-events-none absolute right-3 top-3 text-slate-400"
-                    size={16}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Invoice Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={serviceConfig?.invoicePlaceholder || ""}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
+                    value={invoiceNumber}
+                    onChange={(event) => setInvoiceNumber(event.target.value)}
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Issuing Agency
+                  </label>
+                  <div className="relative">
+                    <select
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
+                      value={issuingAgency}
+                      onChange={(event) => setIssuingAgency(event.target.value)}
+                    >
+                      <option value="">Select Chamber/Agency...</option>
+                      {(serviceConfig?.issuingAgencies || []).map((agency) => (
+                        <option key={agency.value} value={agency.value}>
+                          {agency.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Building2
+                      className="pointer-events-none absolute right-3 top-3 text-slate-400"
+                      size={16}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Destination Country
+                  </label>
+                  <div className="relative">
+                    <select
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
+                      value={destination}
+                      onChange={(event) => setDestination(event.target.value)}
+                    >
+                      <option value="">Select country...</option>
+                      {(serviceConfig?.destinationCountries || []).map(
+                        (country) => (
+                          <option key={country.value} value={country.value}>
+                            {country.label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                    <ChevronDown
+                      className="pointer-events-none absolute right-3 top-3 text-slate-400"
+                      size={16}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                  Destination Country
-                </label>
-                <div className="relative">
+              {certType === "preferential" ? (
+                <div className="space-y-1.5 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                  <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+                    FTA Agreement Framework
+                  </label>
                   <select
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-blue-600"
-                    value={destination}
-                    onChange={(event) => setDestination(event.target.value)}
+                    className="w-full appearance-none rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-900 outline-none"
+                    value={agreement}
+                    onChange={(event) => setAgreement(event.target.value)}
                   >
-                    <option value="">Select country...</option>
-                    {(serviceConfig?.destinationCountries || []).map((country) => (
-                      <option key={country.value} value={country.value}>{country.label}</option>
+                    <option value="">Select FTA Framework...</option>
+                    {(serviceConfig?.ftaAgreements || []).map((fta) => (
+                      <option key={fta.value} value={fta.value}>
+                        {fta.label}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown
-                    className="pointer-events-none absolute right-3 top-3 text-slate-400"
-                    size={16}
-                  />
                 </div>
-              </div>
-            </div>
+              ) : null}
 
-            {certType === "preferential" ? (
-              <div className="space-y-1.5 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                <label className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
-                  FTA Agreement Framework
-                </label>
-                <select
-                  className="w-full appearance-none rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-900 outline-none"
-                  value={agreement}
-                  onChange={(event) => setAgreement(event.target.value)}
-                >
-                  <option value="">Select FTA Framework...</option>
-                  {(serviceConfig?.ftaAgreements || []).map((fta) => (
-                    <option key={fta.value} value={fta.value}>{fta.label}</option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h2 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-800">
+                    <Upload size={14} />
+                    Supporting Documents
+                  </h2>
+                </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h2 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-800">
-                  <Upload size={14} />
-                  Supporting Documents
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                {documentFields.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`rounded-lg p-2 ${
-                          files[doc.id].status === "Uploaded"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-slate-100 text-slate-400"
-                        }`}
-                      >
-                        <FileText size={18} />
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-bold text-slate-800">{doc.label}</span>
-                          {doc.req ? (
-                            <span className="text-[9px] font-black uppercase text-red-500">
-                              Required
-                            </span>
-                          ) : null}
-                          {doc.sample ? (
-                            <button
-                              type="button"
-                              className="flex items-center gap-1 text-[9px] font-bold text-blue-600 underline decoration-blue-200 underline-offset-2 hover:text-blue-800"
-                            >
-                              <Download size={10} />
-                              Sample Template
-                            </button>
-                          ) : null}
-                        </div>
-                        <span
-                          className={`text-[10px] ${
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {documentFields.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`rounded-lg p-2 ${
                             files[doc.id].status === "Uploaded"
-                              ? "font-bold text-green-600"
-                              : "text-slate-400"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-slate-100 text-slate-400"
                           }`}
                         >
-                          {files[doc.id].name || "File not attached"}
-                        </span>
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-bold text-slate-800">
+                              {doc.label}
+                            </span>
+                            {doc.req ? (
+                              <span className="text-[9px] font-black uppercase text-red-500">
+                                Required
+                              </span>
+                            ) : null}
+                            {doc.sample ? (
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-[9px] font-bold text-blue-600 underline decoration-blue-200 underline-offset-2 hover:text-blue-800"
+                              >
+                                <Download size={10} />
+                                Sample Template
+                              </button>
+                            ) : null}
+                          </div>
+                          <span
+                            className={`text-[10px] ${
+                              files[doc.id].status === "Uploaded"
+                                ? "font-bold text-green-600"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {files[doc.id].name || "File not attached"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        {files[doc.id].status === "Uploaded" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(doc.id)}
+                            disabled={uploadingDocumentId === doc.id}
+                            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase text-rose-600 disabled:opacity-60"
+                          >
+                            Remove
+                          </button>
+                        ) : null}
+                        <label
+                          className={`cursor-pointer rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase transition-all ${
+                            files[doc.id].status === "Uploaded"
+                              ? "border-green-200 bg-green-50 text-green-600"
+                              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                          }`}
+                        >
+                          {uploadingDocumentId === doc.id
+                            ? "Uploading..."
+                            : files[doc.id].status === "Uploaded"
+                              ? "Replace"
+                              : "Attach File"}
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                            disabled={uploadingDocumentId === doc.id}
+                            onChange={(event) =>
+                              handleFileSelection(doc.id, event)
+                            }
+                          />
+                        </label>
                       </div>
                     </div>
-
-                    <div className="flex justify-end gap-2">
-                      {files[doc.id].status === "Uploaded" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(doc.id)}
-                          disabled={uploadingDocumentId === doc.id}
-                          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase text-rose-600 disabled:opacity-60"
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                      <label
-                        className={`cursor-pointer rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase transition-all ${
-                          files[doc.id].status === "Uploaded"
-                            ? "border-green-200 bg-green-50 text-green-600"
-                            : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                        }`}
-                      >
-                        {uploadingDocumentId === doc.id
-                          ? "Uploading..."
-                          : files[doc.id].status === "Uploaded"
-                            ? "Replace"
-                            : "Attach File"}
-                        <input
-                          type="file"
-                          className="sr-only"
-                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                          disabled={uploadingDocumentId === doc.id}
-                          onChange={(event) => handleFileSelection(doc.id, event)}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-
             </div>
 
             <div className="relative space-y-4 overflow-hidden rounded-[24px] border border-slate-800 bg-slate-900 shadow-xl xl:sticky xl:top-24 xl:self-start">
@@ -1208,10 +1460,14 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                     </div>
                     <div className="flex justify-between border-t border-white/5 pt-1.5 text-xs">
                       <span className="text-slate-400">Service Charges</span>
-                      <span className="text-white">₹{costs.serviceCharge.toFixed(2)}</span>
+                      <span className="text-white">
+                        ₹{costs.serviceCharge.toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between border-b border-white/5 pb-1.5 text-xs">
-                      <span className="font-bold text-slate-400">GST (18%)</span>
+                      <span className="font-bold text-slate-400">
+                        GST (18%)
+                      </span>
                       <span className="font-bold text-red-400">
                         - ₹{costs.gst.toFixed(2)}
                       </span>
@@ -1257,7 +1513,10 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                 </div>
                 <div className="max-h-32 space-y-2 overflow-y-auto custom-scrollbar">
                   {ledger.transactions.slice(0, 6).map((transaction) => (
-                    <div key={transaction.id} className="rounded-lg border border-white/5 bg-white/[0.04] p-2">
+                    <div
+                      key={transaction.id}
+                      className="rounded-lg border border-white/5 bg-white/[0.04] p-2"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[10px] font-bold text-slate-200">
                           {transaction.serviceName}
@@ -1267,13 +1526,24 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                         </span>
                       </div>
                       <div className="mt-1 flex items-center justify-between text-[9px] text-slate-500">
-                        <span>{transaction.accountType === "WALLET" ? "Wallet" : "Credit Line"} · {transaction.status}</span>
-                        <span>{new Date(transaction.transactionDate).toLocaleString("en-IN")}</span>
+                        <span>
+                          {transaction.accountType === "WALLET"
+                            ? "Wallet"
+                            : "Credit Line"}{" "}
+                          · {transaction.status}
+                        </span>
+                        <span>
+                          {new Date(transaction.transactionDate).toLocaleString(
+                            "en-IN",
+                          )}
+                        </span>
                       </div>
                     </div>
                   ))}
                   {!ledger.transactions.length ? (
-                    <p className="py-3 text-center text-[10px] text-slate-500">No transactions yet</p>
+                    <p className="py-3 text-center text-[10px] text-slate-500">
+                      No transactions yet
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -1310,7 +1580,11 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
                     : "cursor-not-allowed bg-slate-200 text-slate-400"
                 }`}
               >
-                {isSaving ? "Processing..." : isFormValid ? "Confirm & Process Payment" : "Complete Information"}
+                {isSaving
+                  ? "Processing..."
+                  : isFormValid
+                    ? "Confirm & Process Payment"
+                    : "Complete Information"}
                 {isFormValid ? <ArrowRight size={16} /> : null}
               </button>
             </div>
@@ -1324,17 +1598,33 @@ function CertificateOfOriginWorkflow({ service, onBack }) {
 function UniversalServiceWorkflow({ service, category, onBack }) {
   const Icon = service.icon;
   const [activeMode, setActiveMode] = useState("standard");
-  const [form, setForm] = useState({ reference: "", entity: "", description: "" });
+  const [form, setForm] = useState({
+    reference: "",
+    entity: "",
+    description: "",
+  });
   const [documents, setDocuments] = useState({});
 
   const evidence = [
-    { id: "application", label: "Signed application / request letter", required: true },
-    { id: "entity", label: "Entity and statutory supporting document", required: true },
-    { id: "supporting", label: "Additional supporting evidence", required: false }
+    {
+      id: "application",
+      label: "Signed application / request letter",
+      required: true,
+    },
+    {
+      id: "entity",
+      label: "Entity and statutory supporting document",
+      required: true,
+    },
+    {
+      id: "supporting",
+      label: "Additional supporting evidence",
+      required: false,
+    },
   ];
 
   const handleFile = (documentId, file) => {
-    if (file) setDocuments(current => ({ ...current, [documentId]: file }));
+    if (file) setDocuments((current) => ({ ...current, [documentId]: file }));
   };
 
   const saveDraft = () => {
@@ -1342,7 +1632,7 @@ function UniversalServiceWorkflow({ service, category, onBack }) {
       icon: "success",
       title: "Draft saved",
       text: `${service.title} has been retained in this session.`,
-      confirmButtonColor: "#2952ff"
+      confirmButtonColor: "#2952ff",
     });
   };
 
@@ -1356,65 +1646,234 @@ function UniversalServiceWorkflow({ service, category, onBack }) {
                 <Icon size={25} />
               </div>
               <div className="min-w-0">
-                <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#2952ff]">
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#2952ff]"
+                >
                   <ArrowLeft size={16} /> Back to {category.title}
                 </button>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-black uppercase tracking-tight text-slate-950 md:text-2xl">{service.title}</h1>
-                  <span className="rounded-full bg-slate-950 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white">Managed service</span>
+                  <h1 className="text-xl font-black uppercase tracking-tight text-slate-950 md:text-2xl">
+                    {service.title}
+                  </h1>
+                  <span className="rounded-full bg-slate-950 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white">
+                    Managed service
+                  </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                  <span>{category.eyebrow}</span><span className="text-slate-300">•</span><span className="text-amber-600">Priority processing available</span>
+                  <span>{category.eyebrow}</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-amber-600">
+                    Priority processing available
+                  </span>
                 </div>
               </div>
             </div>
-            <button type="button" onClick={onBack} aria-label="Close service" className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={20} /></button>
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Close service"
+              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X size={20} />
+            </button>
           </header>
 
           <div className="grid gap-5 p-5 md:p-6 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="min-w-0 space-y-5">
               <div className="grid rounded-2xl bg-slate-100 p-1 sm:grid-cols-2">
-                {[["standard", "Standard filing", "Complete service workflow"], ["assisted", "Assisted review", "Expert-led preparation"]].map(([id, title, subtitle]) => (
-                  <button key={id} type="button" onClick={() => setActiveMode(id)} className={`rounded-xl px-4 py-3 text-center transition ${activeMode === id ? "border border-blue-200 bg-white text-[#2952ff] shadow-sm" : "text-slate-400"}`}>
-                    <span className="block text-xs font-black uppercase">{title}</span><span className="mt-1 block text-[9px] font-semibold uppercase">{subtitle}</span>
+                {[
+                  ["standard", "Standard filing", "Complete service workflow"],
+                  ["assisted", "Assisted review", "Expert-led preparation"],
+                ].map(([id, title, subtitle]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveMode(id)}
+                    className={`rounded-xl px-4 py-3 text-center transition ${activeMode === id ? "border border-blue-200 bg-white text-[#2952ff] shadow-sm" : "text-slate-400"}`}
+                  >
+                    <span className="block text-xs font-black uppercase">
+                      {title}
+                    </span>
+                    <span className="mt-1 block text-[9px] font-semibold uppercase">
+                      {subtitle}
+                    </span>
                   </button>
                 ))}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Application / reference number</span><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} placeholder="Enter reference number" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
-                <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Entity / branch</span><input value={form.entity} onChange={e => setForm({ ...form, entity: e.target.value })} placeholder="Select or enter entity" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
+                <label className="block">
+                  <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Application / reference number
+                  </span>
+                  <input
+                    value={form.reference}
+                    onChange={(e) =>
+                      setForm({ ...form, reference: e.target.value })
+                    }
+                    placeholder="Enter reference number"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Entity / branch
+                  </span>
+                  <input
+                    value={form.entity}
+                    onChange={(e) =>
+                      setForm({ ...form, entity: e.target.value })
+                    }
+                    placeholder="Select or enter entity"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50"
+                  />
+                </label>
               </div>
-              <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Request details</span><textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} placeholder={service.caption} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50" /></label>
+              <label className="block">
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  Request details
+                </span>
+                <textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  rows={3}
+                  placeholder={service.caption}
+                  className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#2952ff] focus:ring-4 focus:ring-blue-50"
+                />
+              </label>
 
               <section>
-                <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2"><Upload size={15} /><h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Required supporting evidence</h2></div>
+                <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <Upload size={15} />
+                  <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">
+                    Required supporting evidence
+                  </h2>
+                </div>
                 <div className="space-y-2">
-                  {evidence.map(item => {
+                  {evidence.map((item) => {
                     const file = documents[item.id];
-                    return <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${file ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}><FileText size={17} /></div><div className="min-w-0"><p className="truncate text-xs font-black text-slate-800">{item.label} {item.required && <span className="ml-1 text-[9px] text-rose-500">REQUIRED</span>}</p><p className={`mt-1 truncate text-[10px] ${file ? "font-semibold text-emerald-600" : "text-slate-400"}`}>{file?.name || "Awaiting document upload"}</p></div></div>
-                      <label className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-5 py-2 text-center text-[10px] font-black uppercase text-slate-700 hover:border-[#2952ff] hover:text-[#2952ff]">{file ? "Replace" : "Upload"}<input type="file" className="hidden" onChange={e => handleFile(item.id, e.target.files?.[0])} /></label>
-                    </div>;
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${file ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}
+                          >
+                            <FileText size={17} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-black text-slate-800">
+                              {item.label}{" "}
+                              {item.required && (
+                                <span className="ml-1 text-[9px] text-rose-500">
+                                  REQUIRED
+                                </span>
+                              )}
+                            </p>
+                            <p
+                              className={`mt-1 truncate text-[10px] ${file ? "font-semibold text-emerald-600" : "text-slate-400"}`}
+                            >
+                              {file?.name || "Awaiting document upload"}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-5 py-2 text-center text-[10px] font-black uppercase text-slate-700 hover:border-[#2952ff] hover:text-[#2952ff]">
+                          {file ? "Replace" : "Upload"}
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFile(item.id, e.target.files?.[0])
+                            }
+                          />
+                        </label>
+                      </div>
+                    );
                   })}
                 </div>
               </section>
             </div>
 
             <aside className="h-fit overflow-hidden rounded-[26px] bg-[#10192d] text-white shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
-              <div className="border-b border-white/10 px-5 py-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-blue-400"><Receipt size={15} /> Transaction ledger (INR)</p></div>
-              <div className="space-y-5 px-5 py-5 text-xs">
-                <div><p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Prepaid wallet</p><div className="flex justify-between border-b border-white/10 pb-3 text-slate-400"><span>Official / statutory fee</span><span className="font-bold text-white">Calculated on review</span></div></div>
-                <div><p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Corporate credit line</p><div className="flex justify-between border-b border-white/10 pb-3 text-slate-400"><span>Professional charges</span><span className="font-bold text-white">Calculated on review</span></div></div>
-                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-3 text-[11px] leading-5 text-blue-100">Your balances are validated by the backend before final submission. No amount is deducted while saving a draft.</div>
+              <div className="border-b border-white/10 px-5 py-4">
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-blue-400">
+                  <Receipt size={15} /> Transaction ledger (INR)
+                </p>
               </div>
-              <div className="bg-[#2952ff] px-5 py-4"><p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">Estimated payable</p><p className="mt-1 text-xl font-black">Pending quotation</p></div>
+              <div className="space-y-5 px-5 py-5 text-xs">
+                <div>
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Prepaid wallet
+                  </p>
+                  <div className="flex justify-between border-b border-white/10 pb-3 text-slate-400">
+                    <span>Official / statutory fee</span>
+                    <span className="font-bold text-white">
+                      Calculated on review
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Corporate credit line
+                  </p>
+                  <div className="flex justify-between border-b border-white/10 pb-3 text-slate-400">
+                    <span>Professional charges</span>
+                    <span className="font-bold text-white">
+                      Calculated on review
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-3 text-[11px] leading-5 text-blue-100">
+                  Your balances are validated by the backend before final
+                  submission. No amount is deducted while saving a draft.
+                </div>
+              </div>
+              <div className="bg-[#2952ff] px-5 py-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">
+                  Estimated payable
+                </p>
+                <p className="mt-1 text-xl font-black">Pending quotation</p>
+              </div>
             </aside>
           </div>
 
           <footer className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
-            <button type="button" onClick={onBack} className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-rose-500">Discard</button>
-            <div className="flex flex-col gap-3 sm:flex-row"><button type="button" onClick={saveDraft} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"><Save size={16} /> Save as Draft</button><button type="button" onClick={() => Swal.fire({ icon: "info", title: "Request ready for review", text: "Complete service pricing and submission will be enabled when this service API is configured.", confirmButtonColor: "#2952ff" })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2952ff] px-7 py-3 text-sm font-black text-white shadow-lg shadow-blue-200">Continue to review <ArrowRight size={16} /></button></div>
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-rose-500"
+            >
+              Discard
+            </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={saveDraft}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                <Save size={16} /> Save as Draft
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  Swal.fire({
+                    icon: "info",
+                    title: "Request ready for review",
+                    text: "Complete service pricing and submission will be enabled when this service API is configured.",
+                    confirmButtonColor: "#2952ff",
+                  })
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2952ff] px-7 py-3 text-sm font-black text-white shadow-lg shadow-blue-200"
+              >
+                Continue to review <ArrowRight size={16} />
+              </button>
+            </div>
           </footer>
         </article>
       </div>
@@ -1463,7 +1922,9 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
     return <GstLutUndertakingWorkflow service={service} onBack={onBack} />;
   }
   if (service.id === "cdsco-drug-control") {
-    return <CdscoImportAuthorizationWorkflow service={service} onBack={onBack} />;
+    return (
+      <CdscoImportAuthorizationWorkflow service={service} onBack={onBack} />
+    );
   }
   if (service.id === "aqcs-pqms") {
     return <AqcsPqmsWorkflow service={service} onBack={onBack} />;
@@ -1478,7 +1939,13 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
     return <EbrcWorkflow service={service} onBack={onBack} />;
   }
 
-  return <UniversalServiceWorkflow service={service} category={category} onBack={onBack} />;
+  return (
+    <UniversalServiceWorkflow
+      service={service}
+      category={category}
+      onBack={onBack}
+    />
+  );
 }
 
 export default function ServiceStore() {
@@ -1488,28 +1955,29 @@ export default function ServiceStore() {
   const [serviceQuery, setServiceQuery] = useState("");
   const { categoryId, serviceId } = useMemo(
     () => mapPathToState(location.pathname),
-    [location.pathname]
+    [location.pathname],
   );
 
   const selectedComplianceServiceId = serviceId || null;
 
   const selectedCategory = SERVICE_STORE_CATEGORIES.find(
-    category => category.id === categoryId
+    (category) => category.id === categoryId,
   );
   const selectedService = COMPLIANCE_SERVICES.find(
-    service => service.id === selectedComplianceServiceId
+    (service) => service.id === selectedComplianceServiceId,
   );
-  const selectedCategoryService = selectedCategory?.id !== "compliance"
-    ? (CATEGORY_SERVICE_GROUPS[selectedCategory?.id] || []).find(
-        service => service.id === serviceId
-      )
-    : null;
+  const selectedCategoryService =
+    selectedCategory?.id !== "compliance"
+      ? (CATEGORY_SERVICE_GROUPS[selectedCategory?.id] || []).find(
+          (service) => service.id === serviceId,
+        )
+      : null;
 
-  const handleServiceSelect = service => {
+  const handleServiceSelect = (service) => {
     navigate(`/client/service-store/compliance/${service.id}`);
   };
 
-  const handleCategoryServiceSelect = service => {
+  const handleCategoryServiceSelect = (service) => {
     const categoryPath = selectedCategory?.path || "/client/service-store";
     navigate(`${categoryPath}/${service.id}`);
   };
@@ -1526,7 +1994,7 @@ export default function ServiceStore() {
     navigate("/client/service-store");
   };
 
-  const getCategoryServices = categoryIdValue =>
+  const getCategoryServices = (categoryIdValue) =>
     categoryIdValue === "compliance"
       ? COMPLIANCE_SERVICES
       : CATEGORY_SERVICE_GROUPS[categoryIdValue] || [];
@@ -1581,14 +2049,14 @@ export default function ServiceStore() {
                   Filing, Certification, and Documentation Services
                 </p>
                 <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-500">
-                  This screen now acts as the parent Compliance view. All submenu
-                  services are surfaced here so users can browse and select them from one
-                  place.
+                  This screen now acts as the parent Compliance view. All
+                  submenu services are surfaced here so users can browse and
+                  select them from one place.
                 </p>
               </div>
 
               <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {COMPLIANCE_SERVICES.map(service => (
+                {COMPLIANCE_SERVICES.map((service) => (
                   <ComplianceServiceCard
                     key={service.id}
                     service={service}
@@ -1616,7 +2084,7 @@ export default function ServiceStore() {
                       icon: "success",
                       title: "Draft saved",
                       text: "Your Compliance service selection has been saved for later.",
-                      confirmButtonColor: "#2952ff"
+                      confirmButtonColor: "#2952ff",
                     })
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-4 text-sm font-black text-slate-700 shadow-sm"
@@ -1674,12 +2142,13 @@ export default function ServiceStore() {
                   {selectedCategory.description}
                 </p>
                 <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-500">
-                  Select a service from this category to continue with the workflow.
+                  Select a service from this category to continue with the
+                  workflow.
                 </p>
               </div>
 
               <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {categoryServices.map(service => (
+                {categoryServices.map((service) => (
                   <CategoryServiceCard
                     key={service.id}
                     service={service}
@@ -1711,7 +2180,7 @@ export default function ServiceStore() {
             <Search size={16} />
             <input
               value={serviceQuery}
-              onChange={event => setServiceQuery(event.target.value)}
+              onChange={(event) => setServiceQuery(event.target.value)}
               placeholder="Search services"
               aria-label="Search services"
             />
@@ -1720,12 +2189,13 @@ export default function ServiceStore() {
 
         <div className="service-store-scroll custom-scrollbar">
           <div className="space-y-2.5">
-            {SERVICE_STORE_CATEGORIES.map(category => {
+            {SERVICE_STORE_CATEGORIES.map((category) => {
               const Icon = category.icon;
-              const services = getCategoryServices(category.id).filter(service =>
-                `${service.title} ${service.subtitle || ""}`
-                  .toLowerCase()
-                  .includes(serviceQuery.trim().toLowerCase())
+              const services = getCategoryServices(category.id).filter(
+                (service) =>
+                  `${service.title} ${service.subtitle || ""}`
+                    .toLowerCase()
+                    .includes(serviceQuery.trim().toLowerCase()),
               );
               const isExpanded = expandedCategoryId === category.id;
 
@@ -1741,8 +2211,8 @@ export default function ServiceStore() {
                   <button
                     type="button"
                     onClick={() =>
-                      setExpandedCategoryId(current =>
-                        current === category.id ? null : category.id
+                      setExpandedCategoryId((current) =>
+                        current === category.id ? null : category.id,
                       )
                     }
                     className="service-accordion-trigger"
@@ -1770,15 +2240,19 @@ export default function ServiceStore() {
                     />
                   </button>
 
-                  <div className={`service-accordion-content ${isExpanded ? "is-open" : ""}`}>
+                  <div
+                    className={`service-accordion-content ${isExpanded ? "is-open" : ""}`}
+                  >
                     <div className="grid gap-2 border-t border-slate-200/70 p-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {services.map(service => {
+                      {services.map((service) => {
                         const ServiceIcon = service.icon || FileText;
                         return (
                           <button
                             key={service.id}
                             type="button"
-                            onClick={() => openAccordionService(category, service)}
+                            onClick={() =>
+                              openAccordionService(category, service)
+                            }
                             className="service-list-item"
                           >
                             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#3157ff]">
@@ -1792,7 +2266,10 @@ export default function ServiceStore() {
                                 {service.subtitle}
                               </span>
                             </span>
-                            <ChevronRight size={15} className="shrink-0 text-slate-400" />
+                            <ChevronRight
+                              size={15}
+                              className="shrink-0 text-slate-400"
+                            />
                           </button>
                         );
                       })}
