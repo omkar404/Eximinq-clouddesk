@@ -19,6 +19,10 @@ import { createGstLutRouter } from "./routes/gstLut.routes.js";
 import { createCdscoRouter } from "./routes/cdsco.routes.js";
 import { createAqcsPqmsRouter } from "./routes/aqcsPqms.routes.js";
 import { createWarehouseLicenseRouter } from "./routes/warehouseLicense.routes.js";
+import { createFactoryLicenseRouter } from "./routes/factoryLicense.routes.js";
+import { createFssaiRouter } from "./routes/fssai.routes.js";
+import { createRexRegistrationRouter } from "./routes/rexRegistration.routes.js";
+import { createBisRegistrationRouter } from "./routes/bisRegistration.routes.js";
 import { createDscServicesRouter } from "./routes/dscServices.routes.js";
 import { createEbrcRouter } from "./routes/ebrc.routes.js";
 import { createEpcgRouter } from "./routes/epcg.routes.js";
@@ -29,6 +33,7 @@ import { createLmpcRouter } from "./routes/lmpc.routes.js";
 import { createEprAuthorizationRouter } from "./routes/eprAuthorization.routes.js";
 import { createRequestWorkflowRouters } from "./routes/requestWorkflow.routes.js";
 import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
+import { createServiceCatalogRouter } from "./routes/serviceCatalog.routes.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4001);
@@ -413,6 +418,7 @@ app.use(
   "/service-store/certificate-of-origin",
   createCertificateOfOriginRouter({ requireAuth })
 );
+app.use("/service-store", createServiceCatalogRouter({ requireAuth }));
 app.use(
   "/service-store/iem-registration",
   createIemRegistrationRouter({ requireAuth })
@@ -473,6 +479,13 @@ app.use(
   "/service-store/warehouse-license",
   createWarehouseLicenseRouter({ requireAuth })
 );
+app.use(
+  "/service-store/factory-license",
+  createFactoryLicenseRouter({ requireAuth })
+);
+app.use("/service-store/fssai", createFssaiRouter({ requireAuth }));
+app.use("/service-store/rex", createRexRegistrationRouter({ requireAuth }));
+app.use("/service-store/bis", createBisRegistrationRouter({ requireAuth }));
 app.use(
   "/service-store/dsc-services",
   createDscServicesRouter({ requireAuth })

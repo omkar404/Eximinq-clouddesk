@@ -10,6 +10,10 @@ import GstLutUndertakingWorkflow from "./GstLutUndertakingWorkflow";
 import CdscoImportAuthorizationWorkflow from "./CdscoImportAuthorizationWorkflow";
 import AqcsPqmsWorkflow from "./AqcsPqmsWorkflow";
 import WarehouseLicenseWorkflow from "./WarehouseLicenseWorkflow";
+import FactoryLicenseWorkflow from "./FactoryLicenseWorkflow";
+import FssaiWorkflow from "./FssaiWorkflow";
+import RexRegistrationWorkflow from "./RexRegistrationWorkflow";
+import BisRegistrationWorkflow from "./BisRegistrationWorkflow";
 import DscServicesWorkflow from "./DscServicesWorkflow";
 import EbrcWorkflow from "./EbrcWorkflow";
 import EpcgWorkflow from "./EpcgWorkflow";
@@ -28,6 +32,7 @@ import {
   submitCertificateOfOrigin,
   uploadCertificateOfOriginDocument,
 } from "../../services/certificateOfOriginService";
+import { getServiceStoreCatalog } from "../../services/serviceCatalogService";
 import {
   ArrowLeft,
   ArrowRight,
@@ -183,6 +188,38 @@ const COMPLIANCE_SERVICES = [
     aliases: ["industrial-licence", "industrial-license", "industrial"],
   },
   {
+    id: "factory-license",
+    title: "Factory License",
+    subtitle: "Factory establishment compliance",
+    caption: "Factory licensing, renewal, and statutory approval support",
+    icon: Factory,
+    aliases: ["factory-license", "factory-licence"],
+  },
+  {
+    id: "fssai",
+    title: "FSSAI Licensing",
+    subtitle: "Food business regulatory compliance",
+    caption: "FSSAI licensing, registration, and renewal support",
+    icon: FileCheck2,
+    aliases: ["fssai", "fssai-license", "fssai-licensing", "fssai-registration"],
+  },
+  {
+    id: "rex",
+    title: "REX Registration",
+    subtitle: "Registered exporter onboarding",
+    caption: "REX registration and exporter certification assistance",
+    icon: Stamp,
+    aliases: ["rex", "rex-registration"],
+  },
+  {
+    id: "bis",
+    title: "BIS Registration",
+    subtitle: "Product conformity certification",
+    caption: "BIS documentation, registration, and certification support",
+    icon: ShieldCheck,
+    aliases: ["bis", "bis-registration"],
+  },
+  {
     id: "wpc-licence",
     title: "WPC Licence",
     subtitle: "Wireless planning compliance",
@@ -328,13 +365,6 @@ const CATEGORY_SERVICE_GROUPS = {
       icon: Globe,
     },
     {
-      id: "rex",
-      title: "REX Registration",
-      subtitle: "Exporter registration",
-      caption: "REX onboarding and certification assistance.",
-      icon: Stamp,
-    },
-    {
       id: "iec",
       title: "IEC Services",
       subtitle: "Importer exporter code",
@@ -343,20 +373,6 @@ const CATEGORY_SERVICE_GROUPS = {
     },
   ],
   registration: [
-    {
-      id: "fssai",
-      title: "FSSAI Registration",
-      subtitle: "Food business compliance",
-      caption: "Registration and licensing support for food imports.",
-      icon: FileCheck2,
-    },
-    {
-      id: "bis",
-      title: "BIS Registration",
-      subtitle: "Product certification",
-      caption: "BIS documentation and registration workflow.",
-      icon: ShieldCheck,
-    },
     {
       id: "cdsco",
       title: "CDSCO Registration",
@@ -596,7 +612,7 @@ function normalizeServiceStoreSegment(segment) {
   return SERVICE_STORE_SEGMENT_ALIASES[slug] || slug;
 }
 
-function mapPathToState(pathname) {
+function mapPathToState(pathname, categories, complianceServices, serviceGroups) {
   const parts = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   const serviceStoreIndex = parts.indexOf("service-store");
 
@@ -620,7 +636,7 @@ function mapPathToState(pathname) {
       return null;
     }
 
-    const exactMatch = COMPLIANCE_SERVICES.find((service) =>
+    const exactMatch = complianceServices.find((service) =>
       service.aliases.some(
         (alias) => normalizeServiceStoreSegment(alias) === normalizedSegment,
       ),
@@ -630,7 +646,7 @@ function mapPathToState(pathname) {
       return exactMatch;
     }
 
-    return COMPLIANCE_SERVICES.find((service) =>
+    return complianceServices.find((service) =>
       service.aliases.some((alias) => {
         const normalizedAlias = normalizeServiceStoreSegment(alias);
 
@@ -660,12 +676,12 @@ function mapPathToState(pathname) {
     };
   }
 
-  const matchedCategory = SERVICE_STORE_CATEGORIES.find(
+  const matchedCategory = categories.find(
     (category) => normalizeServiceStoreSegment(category.id) === categorySegment,
   );
 
   if (matchedCategory) {
-    const categoryServices = CATEGORY_SERVICE_GROUPS[matchedCategory.id] || [];
+    const categoryServices = serviceGroups[matchedCategory.id] || [];
     const matchedService = categoryServices.find(
       (service) => normalizeServiceStoreSegment(service.id) === serviceSegment,
     );
@@ -1932,6 +1948,18 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
   if (service.id === "warehouse-license") {
     return <WarehouseLicenseWorkflow service={service} onBack={onBack} />;
   }
+  if (service.id === "factory-license") {
+    return <FactoryLicenseWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "fssai") {
+    return <FssaiWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "rex") {
+    return <RexRegistrationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "bis") {
+    return <BisRegistrationWorkflow service={service} onBack={onBack} />;
+  }
   if (service.id === "dsc-services") {
     return <DscServicesWorkflow service={service} onBack={onBack} />;
   }
@@ -1951,11 +1979,58 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
 export default function ServiceStore() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState("");
   const [expandedCategoryId, setExpandedCategoryId] = useState("compliance");
   const [serviceQuery, setServiceQuery] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getServiceStoreCatalog()
+      .then((payload) => {
+        if (active) setCatalog(payload);
+      })
+      .catch(() => {
+        if (active) setCatalogError("Unable to load the Service Store catalog.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const iconByKey = useMemo(() => ({
+    "shield-check": ShieldCheck, landmark: Landmark, building: Building2,
+    wallet: Wallet, "file-text": FileText, scale: Scale,
+    "badge-check": FileCheck2, truck: Truck, factory: Factory, shield: Shield,
+    leaf: Leaf, globe: Globe, store: Store, receipt: Receipt,
+    stamp: Stamp, boxes: Boxes, package: PackageCheck, upload: Upload,
+    "credit-card": CreditCard, radio: Radio, folder: BriefcaseBusiness
+  }), []);
+
+  const SERVICE_STORE_CATEGORIES = useMemo(
+    () => (catalog?.categories || []).map((category) => ({
+      ...category,
+      available: true,
+      icon: iconByKey[category.iconKey] || BriefcaseBusiness,
+      services: (category.services || []).map((service) => ({
+        ...service,
+        aliases: [service.id],
+        icon: iconByKey[service.iconKey] || FileText
+      }))
+    })),
+    [catalog, iconByKey]
+  );
+  const COMPLIANCE_SERVICES = useMemo(
+    () => SERVICE_STORE_CATEGORIES.find((category) => category.id === "compliance")?.services || [],
+    [SERVICE_STORE_CATEGORIES]
+  );
+  const CATEGORY_SERVICE_GROUPS = useMemo(
+    () => Object.fromEntries(SERVICE_STORE_CATEGORIES.map((category) => [category.id, category.services || []])),
+    [SERVICE_STORE_CATEGORIES]
+  );
   const { categoryId, serviceId } = useMemo(
-    () => mapPathToState(location.pathname),
-    [location.pathname],
+    () => mapPathToState(location.pathname, SERVICE_STORE_CATEGORIES, COMPLIANCE_SERVICES, CATEGORY_SERVICE_GROUPS),
+    [location.pathname, SERVICE_STORE_CATEGORIES, COMPLIANCE_SERVICES, CATEGORY_SERVICE_GROUPS],
   );
 
   const selectedComplianceServiceId = serviceId || null;
@@ -2002,6 +2077,14 @@ export default function ServiceStore() {
   const openAccordionService = (category, service) => {
     navigate(`${category.path}/${service.id}`);
   };
+
+  if (!catalog && !catalogError) {
+    return <div className="dashboard-page flex min-h-[420px] items-center justify-center text-sm font-bold text-slate-500">Loading Service Store…</div>;
+  }
+
+  if (catalogError) {
+    return <div className="dashboard-page flex min-h-[420px] items-center justify-center text-sm font-bold text-rose-600">{catalogError}</div>;
+  }
 
   if (selectedCategory?.id === "compliance" && selectedService) {
     return (

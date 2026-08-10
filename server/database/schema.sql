@@ -79,6 +79,20 @@ CREATE TABLE IF NOT EXISTS service_catalog (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE service_catalog
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS service_store_categories (
+  slug VARCHAR(80) PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  eyebrow VARCHAR(180) NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  icon_key VARCHAR(80) NOT NULL DEFAULT 'folder',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS service_requests (
   id BIGSERIAL PRIMARY KEY,
   request_code VARCHAR(40) UNIQUE GENERATED ALWAYS AS
@@ -259,6 +273,353 @@ VALUES(
     "pricing": {
       "non-preferential": {"officialFee": 450, "serviceCharge": 125, "gstRate": 18},
       "preferential": {"officialFee": 650, "serviceCharge": 255, "gstRate": 18}
+    }
+  }'::jsonb
+)
+ON CONFLICT(slug) DO UPDATE SET
+  category = EXCLUDED.category,
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  config = EXCLUDED.config,
+  is_active = TRUE,
+  updated_at = NOW();
+
+-- FSSAI/FoSCoS workflow configuration. Form controls, evidence rules and
+-- pricing are intentionally database-driven so future changes need no UI edit.
+INSERT INTO service_catalog(slug, category, name, description, config)
+VALUES(
+  'fssai',
+  'compliance',
+  'FSSAI Compliance Hub',
+  'FSSAI licensing, returns, labelling and FICS import-clearance support',
+  '{
+    "transactionType":"FoSCoS Compliance",
+    "standard":"FSSAI / FoSCoS Regulatory Compliance",
+    "prioritySla":true,
+    "currency":"INR",
+    "sla":"24 Working Hours",
+    "reportingPeriod":"APR 2025 - MAR 2026",
+    "requestModes":[
+      {"id":"License","label":"License","description":"New / Renewal"},
+      {"id":"Returns","label":"Returns","description":"Annual filing"},
+      {"id":"Labelling","label":"Labelling","description":"Label audit"},
+      {"id":"FICS","label":"FICS","description":"Import clearance"}
+    ],
+    "licenseTypes":[{"id":"New","label":"New"},{"id":"Renewal","label":"Renewal"}],
+    "licenseRoles":[{"id":"Importer","label":"Importer"},{"id":"Exporter","label":"Exporter"}],
+    "foodCategories":[
+      {"id":"Standardized","label":"Standardized (Rule Base)"},
+      {"id":"Proprietary","label":"Proprietary (Ingredient Base)"},
+      {"id":"Health","label":"Nutraceuticals"}
+    ],
+    "documents":[
+      {"id":"performanceSummary","label":"Annual Performance Summary","required":true,"modes":["Returns"]},
+      {"id":"ficsReconciliation","label":"FICS Import Reconciliation","required":true,"modes":["Returns"]},
+      {"id":"analysisReport","label":"Certificate of Analysis / Lab Report","required":true,"modes":["License","FICS"]},
+      {"id":"labelDraft","label":"Product Label / Artwork Draft","required":true},
+      {"id":"ingredientList","label":"Ingredient & Additive Declaration","required":true,"modes":["Labelling"]},
+      {"id":"currentLicense","label":"Current FSSAI License","required":true,"modes":["License"],"licenseTypes":["Renewal"]},
+      {"id":"exportDeclaration","label":"Export-Only Product Declaration","required":true,"modes":["License"],"licenseRoles":["Exporter"]},
+      {"id":"recallPlan","label":"Food Recall Plan","required":true,"modes":["License"]}
+    ],
+    "pricing":{
+      "officialFees":{"License":7500,"Returns":0,"Labelling":0,"FICS":0},
+      "officialGstRate":18,
+      "serviceFees":{"License":15000,"Returns":5000,"Labelling":5000,"FICS":3500},
+      "serviceGstRate":18
+    }
+  }'::jsonb
+)
+ON CONFLICT(slug) DO UPDATE SET
+  category=EXCLUDED.category,
+  name=EXCLUDED.name,
+  description=EXCLUDED.description,
+  config=EXCLUDED.config,
+  is_active=TRUE,
+  updated_at=NOW();
+
+-- Keep the public catalog placement authoritative after all service-specific seeds.
+UPDATE service_catalog AS s
+   SET category = v.category,
+       name = v.name,
+       sort_order = v.sort_order,
+       is_active = TRUE,
+       updated_at = NOW()
+  FROM (VALUES
+    ('advance-authorisation','licensing','Advance Authorisation',1),('epcg','licensing','EPCG Scheme',2),('dfia-license','licensing','DFIA License',3),('eop-extension','licensing','EOP Extension',4),('scomet-licensing','licensing','SCOMET Licensing',5),('customs-license','licensing','Customs License',6),('fertiliser-import','licensing','Fertiliser Import',7),
+    ('import-management','registration','Import Management',1),('star-export-house','registration','Star Export House',2),('iec-management','registration','IEC Management',3),('icegate-registration','registration','ICEGATE Registration',4),('ad-code-registration','registration','AD Code Registration',5),('e-rcmc-issuance','registration','E-RCMC Issuance',6),('defence-exim-license','registration','Defence Exim License',7),('halal-certification','registration','Halal Certification',8),('gem-registration','registration','GeM Registration',9),('horticulture','registration','Horticulture',10),
+    ('free-sale-certificate','incentives','Free Sale Certificate',1),('rodtep-rosctl-script-trading','incentives','RoDTEP / RoSCTL Script Trading',2),('interest-equalisation','incentives','Interest Equalisation',3),('igst-refund','incentives','IGST Refund',4),('duty-drawback','incentives','Duty Drawback',5),('rodtep-scheme','incentives','RoDTEP Scheme',6),('no-due-certificate','incentives','No Due Certificate',7),('no-incentive-certificate','incentives','No Incentive Certificate',8),
+    ('svb-registration','custom-filing','SVB Registration',1),('moowr-scheme','custom-filing','MOOWR Scheme',2),('aeo-certification','custom-filing','AEO Certification',3),('bill-of-entry-import','custom-filing','Bill of Entry (Import)',4),('shipping-bill-export','custom-filing','Shipping Bill (Export)',5),('e-sanchit-support','custom-filing','e-Sanchit Support',6),('duty-payment-ecl','custom-filing','Duty Payment (ECL)',7),('rmcc-alert-removal','custom-filing','RMCC Alert Removal',8),
+    ('customs-adjudication','dispute-resolution','Customs Adjudication',1),('policy-relaxation-prc','dispute-resolution','Policy Relaxation (PRC)',2),
+    ('barcode-registration','iso-trademark','Barcode Registration',1),('brand-copyright','iso-trademark','Brand Copyright',2),('copyright','iso-trademark','Copyright',3),('design-registration','iso-trademark','Design Registration',4),('iso-certification','iso-trademark','ISO Certification',5),('logo-copyright','iso-trademark','Logo Copyright',6),('trademark','iso-trademark','Trademark',7),
+    ('factory-stuffing','logistics','Factory Stuffing',1),('project-cargo','logistics','Project Cargo',2),('warehousing-solutions','logistics','Warehousing Solutions',3),('inland-transportation','logistics','Inland Transportation',4),('marine-insurance','logistics','Marine Insurance',5),('dpd-registration','logistics','DPD Registration',6)
+  ) AS v(slug, category, name, sort_order)
+ WHERE s.slug = v.slug;
+
+UPDATE service_catalog
+   SET is_active = FALSE, updated_at = NOW()
+ WHERE category IN ('licensing','registration','incentives','custom-filing','dispute-resolution','iso-trademark','logistics')
+   AND slug NOT IN (
+    'advance-authorisation','epcg','dfia-license','eop-extension','scomet-licensing','customs-license','fertiliser-import','import-management','star-export-house','iec-management','icegate-registration','ad-code-registration','e-rcmc-issuance','defence-exim-license','halal-certification','gem-registration','horticulture','free-sale-certificate','rodtep-rosctl-script-trading','interest-equalisation','igst-refund','duty-drawback','rodtep-scheme','no-due-certificate','no-incentive-certificate','svb-registration','moowr-scheme','aeo-certification','bill-of-entry-import','shipping-bill-export','e-sanchit-support','duty-payment-ecl','rmcc-alert-removal','customs-adjudication','policy-relaxation-prc','barcode-registration','brand-copyright','copyright','design-registration','iso-certification','logo-copyright','trademark','factory-stuffing','project-cargo','warehousing-solutions','inland-transportation','marine-insurance','dpd-registration'
+   );
+
+-- Backend-managed Service Store navigation and ordering.
+INSERT INTO service_store_categories
+  (slug, name, eyebrow, description, icon_key, sort_order, is_active)
+VALUES
+  ('compliance', 'Compliance', 'DGFT and Trade Governance', 'Certification, return filing, licensing, and regulated documentation services.', 'shield-check', 0, TRUE),
+  ('licensing', 'Licensing', 'Authorisations and Permissions', 'Licences, authorisations, extensions, and regulated import permissions.', 'landmark', 1, TRUE),
+  ('registration', 'Registration', 'Entity and Filing Setup', 'Trade registrations, memberships, certifications, and account activation.', 'building', 2, TRUE),
+  ('incentives', 'Incentives', 'Benefits and Claims', 'Export incentives, refunds, certificates, and script support.', 'wallet', 3, TRUE),
+  ('custom-filing', 'Custom Filing', 'Customs and Port Operations', 'Customs registrations, declarations, payments, and cargo clearances.', 'file-text', 4, TRUE),
+  ('dispute-resolution', 'Dispute Resolution', 'Remedy and Response', 'Adjudication and policy-relaxation representation.', 'scale', 5, TRUE),
+  ('iso-trademark', 'ISO & Trademark', 'Brand and Standards', 'Brand protection, intellectual property, and quality certification.', 'badge-check', 6, TRUE),
+  ('logistics', 'Logistics', 'Cargo and Supply Chain', 'Cargo movement, insurance, storage, and port enablement.', 'truck', 7, TRUE)
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name, eyebrow = EXCLUDED.eyebrow,
+  description = EXCLUDED.description, icon_key = EXCLUDED.icon_key,
+  sort_order = EXCLUDED.sort_order, is_active = TRUE, updated_at = NOW();
+
+INSERT INTO service_catalog
+  (slug, category, name, description, config, sort_order, is_active)
+VALUES
+  ('advance-authorisation','licensing','Advance Authorisation','Duty-free import authorisation support.','{"subtitle":"Duty-free import authorisation","iconKey":"landmark"}',1,TRUE),
+  ('epcg','licensing','EPCG Scheme','Capital-goods import and export-obligation support.','{"subtitle":"Capital goods authorisation","iconKey":"factory"}',2,TRUE),
+  ('dfia-license','licensing','DFIA License','Duty Free Import Authorisation filing and management.','{"subtitle":"DFIA filing and management","iconKey":"file-check"}',3,TRUE),
+  ('eop-extension','licensing','EOP Extension','Export obligation period extension support.','{"subtitle":"Export obligation extension","iconKey":"clock"}',4,TRUE),
+  ('scomet-licensing','licensing','SCOMET Licensing','Authorisation for controlled dual-use items.','{"subtitle":"Controlled-item authorisation","iconKey":"shield"}',5,TRUE),
+  ('customs-license','licensing','Customs License','Customs licence application and renewal support.','{"subtitle":"Customs permissions","iconKey":"stamp"}',6,TRUE),
+  ('fertiliser-import','licensing','Fertiliser Import','Import permissions for regulated fertiliser products.','{"subtitle":"Regulated fertiliser imports","iconKey":"leaf"}',7,TRUE),
+
+  ('import-management','registration','Import Management','Import setup, registrations, and operational enablement.','{"subtitle":"Import setup and control","iconKey":"package"}',1,TRUE),
+  ('star-export-house','registration','Star Export House','Status-holder recognition application support.','{"subtitle":"Status holder recognition","iconKey":"star"}',2,TRUE),
+  ('iec-management','registration','IEC Management','IEC issuance, modification, and lifecycle support.','{"subtitle":"IEC lifecycle management","iconKey":"globe"}',3,TRUE),
+  ('icegate-registration','registration','ICEGATE Registration','ICEGATE account registration and activation.','{"subtitle":"Customs portal activation","iconKey":"monitor"}',4,TRUE),
+  ('ad-code-registration','registration','AD Code Registration','Bank AD code registration at customs ports.','{"subtitle":"Bank code registration","iconKey":"building"}',5,TRUE),
+  ('e-rcmc-issuance','registration','E-RCMC Issuance','Electronic RCMC application and issuance support.','{"subtitle":"Export council membership","iconKey":"badge-check"}',6,TRUE),
+  ('defence-exim-license','registration','Defence Exim License','Defence-sector export/import registration support.','{"subtitle":"Defence trade registration","iconKey":"shield"}',7,TRUE),
+  ('halal-certification','registration','Halal Certification','Halal certification application coordination.','{"subtitle":"Product certification","iconKey":"file-check"}',8,TRUE),
+  ('gem-registration','registration','GeM Registration','Government e-Marketplace seller onboarding.','{"subtitle":"Government marketplace onboarding","iconKey":"store"}',9,TRUE),
+  ('horticulture','registration','Horticulture','Horticulture trade registrations and approvals.','{"subtitle":"Horticulture approvals","iconKey":"leaf"}',10,TRUE),
+
+  ('free-sale-certificate','incentives','Free Sale Certificate','Free Sale Certificate application support.','{"subtitle":"Marketability certification","iconKey":"file-check"}',1,TRUE),
+  ('rodtep-rosctl-script-trading','incentives','RoDTEP / RoSCTL Script Trading','Duty credit script advisory and transfer support.','{"subtitle":"Duty credit script trading","iconKey":"arrow-right-left"}',2,TRUE),
+  ('interest-equalisation','incentives','Interest Equalisation','Interest Equalisation Scheme claim support.','{"subtitle":"Export credit benefit","iconKey":"percent"}',3,TRUE),
+  ('igst-refund','incentives','IGST Refund','Export IGST refund reconciliation and follow-up.','{"subtitle":"Export tax refunds","iconKey":"receipt"}',4,TRUE),
+  ('duty-drawback','incentives','Duty Drawback','Drawback claim preparation and reconciliation.','{"subtitle":"Customs duty benefit","iconKey":"wallet"}',5,TRUE),
+  ('rodtep-scheme','incentives','RoDTEP Scheme','RoDTEP eligibility, claim, and reconciliation support.','{"subtitle":"Export remission benefit","iconKey":"badge-check"}',6,TRUE),
+  ('no-due-certificate','incentives','No Due Certificate','No Due Certificate application support.','{"subtitle":"Clearance certification","iconKey":"file-check"}',7,TRUE),
+  ('no-incentive-certificate','incentives','No Incentive Certificate','No Incentive Certificate preparation and filing.','{"subtitle":"Incentive declaration","iconKey":"file-minus"}',8,TRUE),
+
+  ('svb-registration','custom-filing','SVB Registration','Special Valuation Branch registration support.','{"subtitle":"Related-party valuation","iconKey":"scale"}',1,TRUE),
+  ('moowr-scheme','custom-filing','MOOWR Scheme','Manufacturing and Other Operations in Warehouse support.','{"subtitle":"Bonded manufacturing","iconKey":"factory"}',2,TRUE),
+  ('aeo-certification','custom-filing','AEO Certification','Authorised Economic Operator certification support.','{"subtitle":"Trusted trader certification","iconKey":"shield-check"}',3,TRUE),
+  ('bill-of-entry-import','custom-filing','Bill of Entry (Import)','Import Bill of Entry preparation and filing.','{"subtitle":"Import declaration filing","iconKey":"file-input"}',4,TRUE),
+  ('shipping-bill-export','custom-filing','Shipping Bill (Export)','Export Shipping Bill preparation and filing.','{"subtitle":"Export declaration filing","iconKey":"file-output"}',5,TRUE),
+  ('e-sanchit-support','custom-filing','e-Sanchit Support','Electronic supporting-document upload assistance.','{"subtitle":"Customs document upload","iconKey":"upload"}',6,TRUE),
+  ('duty-payment-ecl','custom-filing','Duty Payment (ECL)','Electronic Cash Ledger duty-payment support.','{"subtitle":"Customs duty payment","iconKey":"credit-card"}',7,TRUE),
+  ('rmcc-alert-removal','custom-filing','RMCC Alert Removal','RMCC alert response and removal support.','{"subtitle":"Customs alert resolution","iconKey":"alert-triangle"}',8,TRUE),
+
+  ('customs-adjudication','dispute-resolution','Customs Adjudication','Representation in customs adjudication proceedings.','{"subtitle":"Customs legal representation","iconKey":"scale"}',1,TRUE),
+  ('policy-relaxation-prc','dispute-resolution','Policy Relaxation (PRC)','Policy Relaxation Committee application support.','{"subtitle":"Policy relaxation representation","iconKey":"gavel"}',2,TRUE),
+
+  ('barcode-registration','iso-trademark','Barcode Registration','GS1 barcode registration and allocation support.','{"subtitle":"Product barcode setup","iconKey":"scan-barcode"}',1,TRUE),
+  ('brand-copyright','iso-trademark','Brand Copyright','Brand artwork copyright protection support.','{"subtitle":"Brand asset protection","iconKey":"copyright"}',2,TRUE),
+  ('copyright','iso-trademark','Copyright','Copyright registration and filing support.','{"subtitle":"Creative work protection","iconKey":"copyright"}',3,TRUE),
+  ('design-registration','iso-trademark','Design Registration','Industrial design registration support.','{"subtitle":"Industrial design protection","iconKey":"pen-tool"}',4,TRUE),
+  ('iso-certification','iso-trademark','ISO Certification','ISO management-system certification support.','{"subtitle":"Quality system certification","iconKey":"badge-check"}',5,TRUE),
+  ('logo-copyright','iso-trademark','Logo Copyright','Logo copyright registration support.','{"subtitle":"Logo asset protection","iconKey":"copyright"}',6,TRUE),
+  ('trademark','iso-trademark','Trademark','Trademark search, filing, and prosecution support.','{"subtitle":"Trademark filing","iconKey":"stamp"}',7,TRUE),
+
+  ('factory-stuffing','logistics','Factory Stuffing','Factory stuffing permission and coordination.','{"subtitle":"On-site container stuffing","iconKey":"factory"}',1,TRUE),
+  ('project-cargo','logistics','Project Cargo','Heavy and project cargo movement coordination.','{"subtitle":"Special cargo logistics","iconKey":"boxes"}',2,TRUE),
+  ('warehousing-solutions','logistics','Warehousing Solutions','Storage and warehouse-operation support.','{"subtitle":"Storage and fulfilment","iconKey":"warehouse"}',3,TRUE),
+  ('inland-transportation','logistics','Inland Transportation','Domestic cargo transportation coordination.','{"subtitle":"Domestic cargo movement","iconKey":"truck"}',4,TRUE),
+  ('marine-insurance','logistics','Marine Insurance','Cargo marine-insurance placement support.','{"subtitle":"Cargo risk coverage","iconKey":"ship"}',5,TRUE),
+  ('dpd-registration','logistics','DPD Registration','Direct Port Delivery registration support.','{"subtitle":"Faster port delivery","iconKey":"anchor"}',6,TRUE)
+ON CONFLICT (slug) DO UPDATE SET
+  category = EXCLUDED.category, name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  config = service_catalog.config || EXCLUDED.config,
+  sort_order = EXCLUDED.sort_order, is_active = TRUE, updated_at = NOW();
+
+UPDATE service_catalog
+   SET is_active = FALSE, updated_at = NOW()
+ WHERE category IN ('licensing','registration','incentives','custom-filing','dispute-resolution','iso-trademark','logistics')
+   AND slug NOT IN (
+    'advance-authorisation','epcg','dfia-license','eop-extension','scomet-licensing','customs-license','fertiliser-import',
+    'import-management','star-export-house','iec-management','icegate-registration','ad-code-registration','e-rcmc-issuance','defence-exim-license','halal-certification','gem-registration','horticulture',
+    'free-sale-certificate','rodtep-rosctl-script-trading','interest-equalisation','igst-refund','duty-drawback','rodtep-scheme','no-due-certificate','no-incentive-certificate',
+    'svb-registration','moowr-scheme','aeo-certification','bill-of-entry-import','shipping-bill-export','e-sanchit-support','duty-payment-ecl','rmcc-alert-removal',
+    'customs-adjudication','policy-relaxation-prc','barcode-registration','brand-copyright','copyright','design-registration','iso-certification','logo-copyright','trademark',
+    'factory-stuffing','project-cargo','warehousing-solutions','inland-transportation','marine-insurance','dpd-registration'
+   );
+
+INSERT INTO service_catalog(slug, category, name, description, config)
+VALUES
+  (
+    'factory-license',
+    'compliance',
+    'Factory License',
+    'Factory licensing, renewal, and statutory approval support',
+    '{"transactionType":"Compliance","standard":"Factories Act Compliance","currency":"INR","status":"CATALOGUED"}'::jsonb
+  ),
+  (
+    'fssai',
+    'compliance',
+    'FSSAI Licensing',
+    'FSSAI licensing, registration, and renewal support',
+    '{"transactionType":"Compliance","standard":"FSSAI Regulatory Compliance","currency":"INR","status":"CATALOGUED"}'::jsonb
+  ),
+  (
+    'rex',
+    'compliance',
+    'REX Registration',
+    'REX registration and exporter certification assistance',
+    '{"transactionType":"Compliance","standard":"Registered Exporter System","currency":"INR","status":"CATALOGUED"}'::jsonb
+  ),
+  (
+    'bis',
+    'compliance',
+    'BIS Registration',
+    'BIS documentation, registration, and certification support',
+    '{"transactionType":"Compliance","standard":"BIS Product Conformity","currency":"INR","status":"CATALOGUED"}'::jsonb
+  )
+ON CONFLICT(slug) DO UPDATE SET
+  category = EXCLUDED.category,
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  config = service_catalog.config || EXCLUDED.config,
+  is_active = TRUE,
+  updated_at = NOW();
+
+-- Complete REX workflow configuration. This statement intentionally follows
+-- the category-normalisation seed above so the catalog remains the single
+-- source of truth for the client form, evidence rules, pricing, and SLA.
+INSERT INTO service_catalog(slug, category, name, description, config)
+VALUES(
+  'rex',
+  'compliance',
+  'REX Registration & Audit',
+  'Registered Exporter System registration, modification, and origin self-certification support',
+  '{
+    "transactionType": "GSP Self-Cert",
+    "standard": "Registered Exporter System / Rules of Origin",
+    "prioritySla": true,
+    "currency": "INR",
+    "sla": "48 Working Hours",
+    "requestTypes": [
+      {"id":"New","label":"New Registration","description":"Initial REX enrolment"},
+      {"id":"Modification","label":"Modification","description":"Update an existing registration"}
+    ],
+    "destinations": [
+      {"id":"EU","label":"European Union"},
+      {"id":"UK","label":"United Kingdom"},
+      {"id":"CH","label":"Switzerland"},
+      {"id":"TR","label":"Turkey"}
+    ],
+    "documents": [
+      {"id":"costSheet","label":"Product Cost Sheet & Value Addition Working","required":true},
+      {"id":"rexDeclaration","label":"REX Exporter Declaration / Undertaking","required":true},
+      {"id":"rawMaterialInvoices","label":"Raw Material Purchase Invoices","required":true},
+      {"id":"iecGstCopy","label":"IEC & GST Registration Copy","required":true},
+      {"id":"factoryPhotos","label":"Factory / Manufacturing Process Photographs","required":false}
+    ],
+    "pricing": {
+      "officialFees": {"New":0,"Modification":0},
+      "officialGstRate": 0,
+      "draftingFees": {"New":5000,"Modification":2500},
+      "originPremiums": {"New":5000,"Modification":5000},
+      "serviceGstRate": 18
+    },
+    "minimumValueAddition": 40,
+    "status": "ACTIVE"
+  }'::jsonb
+)
+ON CONFLICT(slug) DO UPDATE SET
+  category = EXCLUDED.category,
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  config = EXCLUDED.config,
+  is_active = TRUE,
+  updated_at = NOW();
+
+-- Complete BIS workflow configuration for CRS, ISI, and FMCS certification.
+INSERT INTO service_catalog(slug, category, name, description, config)
+VALUES(
+  'bis',
+  'compliance',
+  'BIS Registration & Certification',
+  'BIS CRS, ISI Mark, and Foreign Manufacturers Certification support',
+  '{
+    "transactionType": "G2B Safety",
+    "standard": "BIS Product Conformity / MANAK Online",
+    "prioritySla": true,
+    "currency": "INR",
+    "sla": "15–20 Working Days",
+    "requestModes": [
+      {"id":"CRS","label":"CRS Registration","description":"Compulsory Registration Scheme"},
+      {"id":"ISI","label":"ISI Mark License","description":"Domestic product certification"},
+      {"id":"FMCS","label":"FMCS Certification","description":"Foreign manufacturer certification"}
+    ],
+    "documents": [
+      {"id":"cdfDocument","label":"Component Declaration Form (CDF)","requiredFor":["CRS","ISI","FMCS"]},
+      {"id":"techSpecSheet","label":"Technical Data Sheet with Schematics","requiredFor":["CRS","ISI","FMCS"]},
+      {"id":"testReport","label":"BIS-recognised Laboratory Test Report","requiredFor":["CRS","ISI","FMCS"]},
+      {"id":"airAgreement","label":"Authorised Indian Representative Agreement","requiredFor":["FMCS"],"showFor":["FMCS"]},
+      {"id":"factoryProcess","label":"Factory Process Flow and Quality Plan","requiredFor":["ISI","FMCS"],"showFor":["ISI","FMCS"]},
+      {"id":"trademarkCert","label":"Trademark Registration Certificate","requiredFor":[]}
+    ],
+    "pricing": {
+      "officialFees": {"CRS":1000,"ISI":15000,"FMCS":25000},
+      "draftingFees": {"CRS":25000,"ISI":75000,"FMCS":100000},
+      "shieldPremium": 15000,
+      "serviceGstRate": 18
+    },
+    "status": "ACTIVE"
+  }'::jsonb
+)
+ON CONFLICT(slug) DO UPDATE SET
+  category = EXCLUDED.category,
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  config = EXCLUDED.config,
+  is_active = TRUE,
+  updated_at = NOW();
+
+-- Factory License workflow configuration. The service stays exclusively in
+-- Compliance; the separate Logistics "Factory Stuffing" catalog entry remains
+-- an independent service.
+INSERT INTO service_catalog(slug, category, name, description, config)
+VALUES(
+  'factory-license',
+  'compliance',
+  'Factory License',
+  'Factory licensing, renewal, and statutory infrastructure compliance support',
+  '{
+    "transactionType": "Factory Compliance",
+    "standard": "CBIC Factory Stuffing Permission",
+    "prioritySla": true,
+    "currency": "INR",
+    "sla": "10-15 Working Days",
+    "requestTypes": [
+      {"id":"New","label":"New Permission","description":"Factory Stuffing Approval"},
+      {"id":"Renewal","label":"Renewal","description":"Permission Continuation"}
+    ],
+    "documents": [
+      {"id":"prevPermission","label":"Previous Factory Stuffing Permission","required":true,"requestTypes":["Renewal"]},
+      {"id":"factoryPhotos","label":"Factory Premises Photographs","required":true},
+      {"id":"sitePlan","label":"Factory Site Plan & Examination Area","required":true},
+      {"id":"factoryOwnership","label":"Factory Ownership / Registered Lease","required":true},
+      {"id":"selfSealingDecl","label":"Self-Sealing & CCTV Declaration","required":true},
+      {"id":"iecGstCopy","label":"IEC & GST Registration Copy","required":false}
+    ],
+    "pricing": {
+      "officialFee": 0,
+      "draftingFees": {"New":12500,"Renewal":7500},
+      "savingsPerContainer": 8000,
+      "successFeeRate": 1,
+      "gstRate": 18
     }
   }'::jsonb
 )
@@ -1075,3 +1436,90 @@ ON CONFLICT(slug) DO UPDATE SET
   config = EXCLUDED.config,
   is_active = TRUE,
   updated_at = NOW();
+
+-- Final authoritative placement. Service-specific seeds above may preserve legacy
+-- category labels, so normalize the public catalog after every seed has run.
+WITH desired(slug, category, name, sort_order) AS (
+  VALUES
+    ('advance-authorisation', 'licensing', 'Advance Authorisation', 1),
+    ('epcg', 'licensing', 'EPCG Scheme', 2),
+    ('dfia-license', 'licensing', 'DFIA License', 3),
+    ('eop-extension', 'licensing', 'EOP Extension', 4),
+    ('scomet-licensing', 'licensing', 'SCOMET Licensing', 5),
+    ('customs-license', 'licensing', 'Customs License', 6),
+    ('fertiliser-import', 'licensing', 'Fertiliser Import', 7),
+    ('import-management', 'registration', 'Import Management', 1),
+    ('star-export-house', 'registration', 'Star Export House', 2),
+    ('iec-management', 'registration', 'IEC Management', 3),
+    ('icegate-registration', 'registration', 'ICEGATE Registration', 4),
+    ('ad-code-registration', 'registration', 'AD Code Registration', 5),
+    ('e-rcmc-issuance', 'registration', 'E-RCMC Issuance', 6),
+    ('defence-exim-license', 'registration', 'Defence Exim License', 7),
+    ('halal-certification', 'registration', 'Halal Certification', 8),
+    ('gem-registration', 'registration', 'GeM Registration', 9),
+    ('horticulture', 'registration', 'Horticulture', 10),
+    ('free-sale-certificate', 'incentives', 'Free Sale Certificate', 1),
+    ('rodtep-rosctl-script-trading', 'incentives', 'RoDTEP / RoSCTL Script Trading', 2),
+    ('interest-equalisation', 'incentives', 'Interest Equalisation', 3),
+    ('igst-refund', 'incentives', 'IGST Refund', 4),
+    ('duty-drawback', 'incentives', 'Duty Drawback', 5),
+    ('rodtep-scheme', 'incentives', 'RoDTEP Scheme', 6),
+    ('no-due-certificate', 'incentives', 'No Due Certificate', 7),
+    ('no-incentive-certificate', 'incentives', 'No Incentive Certificate', 8),
+    ('svb-registration', 'custom-filing', 'SVB Registration', 1),
+    ('moowr-scheme', 'custom-filing', 'MOOWR Scheme', 2),
+    ('aeo-certification', 'custom-filing', 'AEO Certification', 3),
+    ('bill-of-entry-import', 'custom-filing', 'Bill of Entry (Import)', 4),
+    ('shipping-bill-export', 'custom-filing', 'Shipping Bill (Export)', 5),
+    ('e-sanchit-support', 'custom-filing', 'e-Sanchit Support', 6),
+    ('duty-payment-ecl', 'custom-filing', 'Duty Payment (ECL)', 7),
+    ('rmcc-alert-removal', 'custom-filing', 'RMCC Alert Removal', 8),
+    ('customs-adjudication', 'dispute-resolution', 'Customs Adjudication', 1),
+    ('policy-relaxation-prc', 'dispute-resolution', 'Policy Relaxation (PRC)', 2),
+    ('barcode-registration', 'iso-trademark', 'Barcode Registration', 1),
+    ('brand-copyright', 'iso-trademark', 'Brand Copyright', 2),
+    ('copyright', 'iso-trademark', 'Copyright', 3),
+    ('design-registration', 'iso-trademark', 'Design Registration', 4),
+    ('iso-certification', 'iso-trademark', 'ISO Certification', 5),
+    ('logo-copyright', 'iso-trademark', 'Logo Copyright', 6),
+    ('trademark', 'iso-trademark', 'Trademark', 7),
+    ('factory-stuffing', 'logistics', 'Factory Stuffing', 1),
+    ('project-cargo', 'logistics', 'Project Cargo', 2),
+    ('warehousing-solutions', 'logistics', 'Warehousing Solutions', 3),
+    ('inland-transportation', 'logistics', 'Inland Transportation', 4),
+    ('marine-insurance', 'logistics', 'Marine Insurance', 5),
+    ('dpd-registration', 'logistics', 'DPD Registration', 6)
+)
+UPDATE service_catalog catalog
+SET category = desired.category,
+    name = desired.name,
+    sort_order = desired.sort_order,
+    is_active = TRUE,
+    updated_at = NOW()
+FROM desired
+WHERE catalog.slug = desired.slug;
+
+UPDATE service_catalog catalog
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE catalog.category IN (
+  'licensing', 'registration', 'incentives', 'custom-filing',
+  'dispute-resolution', 'iso-trademark', 'logistics'
+)
+AND catalog.slug NOT IN (
+  'advance-authorisation', 'epcg', 'dfia-license', 'eop-extension',
+  'scomet-licensing', 'customs-license', 'fertiliser-import',
+  'import-management', 'star-export-house', 'iec-management',
+  'icegate-registration', 'ad-code-registration', 'e-rcmc-issuance',
+  'defence-exim-license', 'halal-certification', 'gem-registration',
+  'horticulture', 'free-sale-certificate', 'rodtep-rosctl-script-trading',
+  'interest-equalisation', 'igst-refund', 'duty-drawback', 'rodtep-scheme',
+  'no-due-certificate', 'no-incentive-certificate', 'svb-registration',
+  'moowr-scheme', 'aeo-certification', 'bill-of-entry-import',
+  'shipping-bill-export', 'e-sanchit-support', 'duty-payment-ecl',
+  'rmcc-alert-removal', 'customs-adjudication', 'policy-relaxation-prc',
+  'barcode-registration', 'brand-copyright', 'copyright',
+  'design-registration', 'iso-certification', 'logo-copyright', 'trademark',
+  'factory-stuffing', 'project-cargo', 'warehousing-solutions',
+  'inland-transportation', 'marine-insurance', 'dpd-registration'
+);

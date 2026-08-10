@@ -113,6 +113,10 @@ const serviceStoreSubmenus = {
     ["Certificate of Origin", "certificate-of-origin"],
     ["IEM Registration", "iem-registration"],
     ["Industrial Licence", "industrial-licence"],
+    ["Factory License", "factory-license"],
+    ["FSSAI Licensing", "fssai"],
+    ["REX Registration", "rex"],
+    ["BIS Registration", "bis"],
     ["WPC Licence", "wpc-licence"],
     ["UN IIP Certificate", "un-iip-certificate"],
     ["GST Returns", "gst-return"],
@@ -125,12 +129,9 @@ const serviceStoreSubmenus = {
     ["Advance Authorisation", "advance-auth"],
     ["EPCG License", "epcg"],
     ["Star Export House", "star"],
-    ["REX Registration", "rex"],
     ["IEC Services", "iec"]
   ],
   registration: [
-    ["FSSAI Registration", "fssai"],
-    ["BIS Registration", "bis"],
     ["CDSCO Registration", "cdsco"],
     ["AQCS & PQMS", "aqcs"],
     ["Legal Metrology", "legal-metrology"]
