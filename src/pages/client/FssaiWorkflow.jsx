@@ -28,26 +28,34 @@ export default function FssaiWorkflow({ service, onBack }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getFssaiConfiguration(), getFssaiRequests(), getFssaiLedger()]).then(async ([config, data, ledgerData]) => {
-      const draft = data.requests?.find((item) => item.status === "DRAFT");
-      const payload = draft?.payload || {};
-      const mode = payload.requestMode || "License";
-      const pricing = await getFssaiQuote(mode);
-      if (!active) return;
-      const restored = Object.fromEntries((config.service.documents || []).map((item) => [item.id, { ...emptyFile }]));
-      for (const document of draft?.documents || []) restored[document.documentKey] = { status: "Uploaded", name: document.name, size: Number(document.size || 0) };
-      setConfiguration(config); setQuote(pricing); setLedger(ledgerData); setRequestId(draft?.id || null); setDraftCode(draft?.request_code || "");
-      setRequestMode(mode); setLicenseType(payload.licenseType || "New"); setLicenseRole(payload.licenseRole || "Importer"); setFoodCategory(payload.foodCategory || "Standardized");
-      setShelfLifeRemaining(payload.shelfLifeRemaining ?? ""); setReportingPeriod(payload.reportingPeriod || config.service.reportingPeriod || ""); setFiles(restored);
-    }).catch(() => active && setError("Unable to load FSSAI Compliance Hub.")).finally(() => active && setInitializing(false));
+    (async () => {
+      try {
+        const config = await getFssaiConfiguration();
+        const [requestsResult, ledgerResult] = await Promise.allSettled([getFssaiRequests(), getFssaiLedger()]);
+        const data = requestsResult.status === "fulfilled" ? requestsResult.value : { requests: [] };
+        const ledgerData = ledgerResult.status === "fulfilled" ? ledgerResult.value : { transactions: [] };
+        const draft = data.requests?.find((item) => item.status === "DRAFT");
+        const payload = draft?.payload || {};
+        const mode = payload.requestMode || "License";
+        let pricing = {};
+        try { pricing = await getFssaiQuote(mode); } catch { pricing = {}; }
+        if (!active) return;
+        const restored = Object.fromEntries((config.service.documents || []).map((item) => [item.id, { ...emptyFile }]));
+        for (const document of draft?.documents || []) restored[document.documentKey] = { status: "Uploaded", name: document.name, size: Number(document.size || 0) };
+        setConfiguration(config); setQuote(pricing); setLedger(ledgerData); setRequestId(draft?.id || null); setDraftCode(draft?.request_code || "");
+        setRequestMode(mode); setLicenseType(payload.licenseType || "New"); setLicenseRole(payload.licenseRole || "Importer"); setFoodCategory(payload.foodCategory || "Standardized");
+        setShelfLifeRemaining(payload.shelfLifeRemaining ?? ""); setReportingPeriod(payload.reportingPeriod || config.service.reportingPeriod || ""); setFiles(restored); setError("");
+      } catch { if (active) setError("Unable to load FSSAI Compliance Hub."); }
+      finally { if (active) setInitializing(false); }
+    })();
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    if (initializing) return undefined;
+    if (initializing || !configuration) return undefined;
     const timer = setTimeout(() => getFssaiQuote(requestMode).then((data) => { setQuote(data); setError(""); }).catch(() => setError("Unable to calculate FSSAI fees.")), 200);
     return () => clearTimeout(timer);
-  }, [requestMode, initializing]);
+  }, [requestMode, initializing, configuration]);
 
   const config = configuration?.service;
   const documents = useMemo(() => (config?.documents || []).filter((item) => (!item.modes || item.modes.includes(requestMode)) && (!item.licenseTypes || item.licenseTypes.includes(licenseType)) && (!item.licenseRoles || item.licenseRoles.includes(licenseRole))), [config, requestMode, licenseType, licenseRole]);
