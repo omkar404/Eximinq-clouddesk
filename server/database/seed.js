@@ -5,11 +5,17 @@ import { pool } from "./pool.js";
 
 const email = (process.env.ADMIN_EMAIL || "admin@eximinq.com").toLowerCase();
 const password = process.env.ADMIN_PASSWORD;
+const clientEmail = process.env.CLIENT_EMAIL?.trim().toLowerCase();
+const clientPassword = process.env.CLIENT_PASSWORD;
 const agentEmail = (process.env.AGENT_EMAIL || "agent@eximinq.com").toLowerCase();
 const agentPassword = process.env.AGENT_PASSWORD || "Agent@12345!";
 
 if (!password || password.length < 10) {
   throw new Error("ADMIN_PASSWORD must contain at least 10 characters");
+}
+
+if ((clientEmail || clientPassword) && (!clientEmail || !clientPassword || clientPassword.length < 10)) {
+  throw new Error("CLIENT_EMAIL and a CLIENT_PASSWORD of at least 10 characters must be provided together");
 }
 
 const menus = [
@@ -68,6 +74,16 @@ try {
      ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash, role_id=EXCLUDED.role_id, is_active=TRUE, updated_at=NOW()`,
     [email, hash, role.rows[0].id]
   );
+  if (clientEmail && clientPassword) {
+    const clientHash = await bcrypt.hash(clientPassword, 12);
+    await client.query(
+      `INSERT INTO users(name,email,password_hash,user_code,role_id)
+       VALUES('CloudDesk Client',$1,$2,'CLI-0001',$3)
+       ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash,
+         role_id=EXCLUDED.role_id,is_active=TRUE,updated_at=NOW()`,
+      [clientEmail, clientHash, clientRole.rows[0].id]
+    );
+  }
   const agentHash = await bcrypt.hash(agentPassword, 12);
   await client.query(
     `INSERT INTO users(name,email,password_hash,user_code,role_id)
@@ -78,6 +94,7 @@ try {
   );
   await client.query("COMMIT");
   console.log(`Admin account is ready: ${email}`);
+  if (clientEmail) console.log(`Client account is ready: ${clientEmail}`);
 } catch (error) {
   await client.query("ROLLBACK");
   throw error;

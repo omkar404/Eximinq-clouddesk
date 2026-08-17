@@ -24,3 +24,7 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: CLIENT_EMAIL
+        sync: false
+      - key: CLIENT_PASSWORD
+        sync: false
