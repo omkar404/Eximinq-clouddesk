@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import {
   BadgeCheck,
+  ArrowLeft,
   Building2,
   CheckCircle2,
   Download,
   LoaderCircle,
+  Pencil,
   Search,
   ShieldCheck
 } from "lucide-react";
+import ClientCompanyProfile from "../client/ClientCompanyProfile";
 import {
   fetchAdminClients,
   downloadAdminFile,
@@ -34,6 +37,7 @@ export default function AdminCompanyProfiles() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeDownloadKey, setActiveDownloadKey] = useState("");
   const [approvingClientId, setApprovingClientId] = useState("");
+  const [managedClient, setManagedClient] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -114,6 +118,35 @@ export default function AdminCompanyProfiles() {
       setApprovingClientId("");
     }
   };
+
+  if (managedClient) {
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="premium-kicker">Admin-managed company profile</p>
+            <h1 className="mt-2 text-xl font-bold text-slate-950">
+              {managedClient.companyProfile?.companyDisplayName || managedClient.name}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Changes save to the shared profile and appear read-only for the client.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setManagedClient(null)}
+            className="premium-button premium-button-secondary"
+          >
+            <ArrowLeft size={16} />
+            Back to profiles
+          </button>
+        </div>
+        <ClientCompanyProfile
+          adminClientId={managedClient.id}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -205,7 +238,15 @@ export default function AdminCompanyProfiles() {
                     />
                   </div>
                 </div>
-                <div className="mt-5 flex justify-end">
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setManagedClient(client)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-bold text-blue-700"
+                  >
+                    <Pencil size={16} />
+                    Manage Full Profile
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleApprove(client.id)}

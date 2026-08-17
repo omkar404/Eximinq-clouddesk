@@ -48,7 +48,8 @@ const companyDocumentUpload = multer({
   storage: multer.diskStorage({
     destination: companyDocumentDirectory,
     filename(req, file, callback) {
-      callback(null, `${req.user.id}__${crypto.randomUUID()}${extname(file.originalname).toLowerCase()}`);
+      const ownerId = req.companyProfileOwnerId || req.user.id;
+      callback(null, `${ownerId}__${crypto.randomUUID()}${extname(file.originalname).toLowerCase()}`);
     }
   }),
   limits: { fileSize: 15 * 1024 * 1024 },
@@ -271,6 +272,20 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+async function requireClientProfileOwner(req, res, next) {
+  try {
+    const owner = await getUser(req.params.clientId);
+    if (!owner || owner.role !== "CLIENT") {
+      return res.status(404).json({ message: "Client not found" });
+    }
+    req.companyProfileOwner = owner;
+    req.companyProfileOwnerId = owner.id;
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 const requireRole = (role) => (req, res, next) => {
   if (req.user.role !== role) return res.status(403).json({ message: `${role} access required` });
   next();
@@ -349,7 +364,8 @@ app.post("/auth/logout", async (req, res, next) => {
 app.get("/auth/company-profile/documents/file/:token", requireAuth, async (req, res, next) => {
   try {
     const token = String(req.params.token || "");
-    if (!token.startsWith(`${req.user.id}__`) || token !== token.split("/").pop()) {
+    const ownsDocument = token.startsWith(`${req.user.id}__`);
+    if ((!ownsDocument && req.user.role !== "ADMIN") || token !== token.split("/").pop()) {
       return res.status(404).json({ message: "Document not found" });
     }
     res.sendFile(resolve(companyDocumentDirectory, token));
@@ -453,7 +469,7 @@ app.get("/auth/admin/clients", requireAuth, requireAdmin, async (_req, res, next
             ...data,
             companyDisplayName: data.company_name || row.name,
             gstin: data.gstin_details?.[0]?.gstin || "",
-            documentCatalog: [],
+            documentCatalog: companyDocumentCatalog(data),
             workflowState: { approvalStatus: status, submittedAt: row.profile_updated_at },
             sections: [
               { key: "company", title: "Company Details", completed: Boolean(data.company_name) },
@@ -478,6 +494,101 @@ app.get("/auth/admin/clients", requireAuth, requireAdmin, async (_req, res, next
     next(error);
   }
 });
+
+app.get(
+  "/auth/admin/clients/:clientId/company-profile",
+  requireAuth,
+  requireAdmin,
+  requireClientProfileOwner,
+  async (req, res, next) => {
+    try {
+      const result = await pool.query("SELECT data,status FROM company_profiles WHERE user_id=$1", [
+        req.companyProfileOwner.id
+      ]);
+      const profile = result.rows[0]?.data || {};
+      res.json({
+        user: {
+          userCode: req.companyProfileOwner.user_code,
+          email: req.companyProfileOwner.email,
+          name: req.companyProfileOwner.name
+        },
+        profile,
+        documentCatalog: companyDocumentCatalog(profile),
+        onboarding: await onboardingFor(req.companyProfileOwner)
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+app.put(
+  "/auth/admin/clients/:clientId/company-profile",
+  requireAuth,
+  requireAdmin,
+  requireClientProfileOwner,
+  async (req, res, next) => {
+    try {
+      const profile = normalizeCompanyProfilePayload(req.body);
+      await pool.query(
+        `INSERT INTO company_profiles(user_id,data,status,updated_at)
+         VALUES($1,$2,'APPROVED',NOW())
+         ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,status='APPROVED',updated_at=NOW()`,
+        [req.companyProfileOwner.id, profile]
+      );
+      res.json({
+        user: {
+          userCode: req.companyProfileOwner.user_code,
+          email: req.companyProfileOwner.email,
+          name: req.companyProfileOwner.name
+        },
+        profile,
+        documentCatalog: companyDocumentCatalog(profile),
+        onboarding: await onboardingFor(req.companyProfileOwner)
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+app.post(
+  "/auth/admin/clients/:clientId/company-profile/documents/:documentType",
+  requireAuth,
+  requireAdmin,
+  requireClientProfileOwner,
+  companyDocumentUpload.single("file"),
+  (req, res) => {
+    res.status(201).json({
+      document: {
+        token: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size
+      }
+    });
+  }
+);
+
+app.delete(
+  "/auth/admin/clients/:clientId/company-profile/documents/:documentType/temp/:token",
+  requireAuth,
+  requireAdmin,
+  requireClientProfileOwner,
+  async (req, res, next) => {
+    try {
+      const token = String(req.params.token || "");
+      if (!token.startsWith(`${req.companyProfileOwner.id}__`) || token !== token.split("/").pop()) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      await unlink(resolve(companyDocumentDirectory, token));
+      res.status(204).end();
+    } catch (error) {
+      if (error.code === "ENOENT") return res.status(204).end();
+      next(error);
+    }
+  }
+);
 
 app.post("/auth/admin/clients/:clientId/company-profile/approve", requireAuth, requireAdmin, async (req, res, next) => {
   try {

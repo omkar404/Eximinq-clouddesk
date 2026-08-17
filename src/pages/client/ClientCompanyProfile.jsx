@@ -19,7 +19,9 @@ import {
 import API from "../../services/interceptor";
 import {
   openClientCompanyProfileDocument,
+  removeAdminTempCompanyDocument,
   removeTempCompanyDocument,
+  uploadAdminCompanyDocument,
   uploadCompanyDocument
 } from "../../services/documentService";
 import { useAuth } from "../../context/useAuth";
@@ -834,7 +836,7 @@ function SectionHeader({ icon: Icon, title, description }) {
   );
 }
 
-export default function ClientCompanyProfile() {
+export default function ClientCompanyProfile({ adminClientId = "" }) {
   const location = useLocation();
   const { user, onboarding, updateOnboarding } = useAuth();
   const [form, setForm] = useState(() => normalizeProfile({}));
@@ -846,22 +848,27 @@ export default function ClientCompanyProfile() {
   const [activeStep, setActiveStep] = useState(0);
   const [companyProfileSubStep, setCompanyProfileSubStep] = useState(0);
   const [quickFormSectionIndex, setQuickFormSectionIndex] = useState(0);
+  const isAdminManaged = Boolean(adminClientId);
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const response = await API.get("/auth/company-profile");
-        const normalized = ensureSetupRouteDefaults(
-          normalizeProfile({ ...response.data, user })
+        const response = await API.get(
+          isAdminManaged
+            ? `/auth/admin/clients/${adminClientId}/company-profile`
+            : "/auth/company-profile"
         );
-        const draft = readDraft();
+        const normalized = ensureSetupRouteDefaults(
+          normalizeProfile({ ...response.data, user: isAdminManaged ? response.data.user : user })
+        );
+        const draft = isAdminManaged ? null : readDraft();
         const canEditProfile = response.data.onboarding?.companyProfileEditable !== false;
-        const mergedProfile = canEditProfile
+        const mergedProfile = canEditProfile && !isAdminManaged
           ? ensureSetupRouteDefaults(mergeDraftIntoProfile(normalized, draft))
           : normalized;
         setForm(mergedProfile);
         setDocumentCatalog(response.data.documentCatalog || []);
-        if (!canEditProfile) {
+        if (!canEditProfile && !isAdminManaged) {
           clearDraft();
         }
         updateOnboarding(response.data.onboarding || null);
@@ -878,17 +885,17 @@ export default function ClientCompanyProfile() {
     };
 
     loadProfile();
-  }, [updateOnboarding, user]);
+  }, [adminClientId, isAdminManaged, updateOnboarding, user]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !isAdminManaged) {
       if (onboarding?.companyProfileEditable === false) {
         clearDraft();
       } else {
         writeDraft(form);
       }
     }
-  }, [form, loading, onboarding]);
+  }, [form, isAdminManaged, loading, onboarding]);
 
   const sectionProgress = useMemo(() => buildSectionProgress(form), [form]);
 
@@ -924,10 +931,8 @@ export default function ClientCompanyProfile() {
   const activeStepConfig = STEP_DEFINITIONS[activeStep];
   const activeCompanyProfileSubStep = COMPANY_PROFILE_SUBSTEPS[companyProfileSubStep];
   const activeQuickFormSection = QUICK_FORM_SECTIONS[quickFormSectionIndex];
-  const isSetupRoute = location.pathname === "/client/company-profile-setup";
-  const isEditable = isSetupRoute
-    ? onboarding?.companyProfileEditable !== false
-    : false;
+  const isSetupRoute = !isAdminManaged && location.pathname === "/client/company-profile-setup";
+  const isEditable = isAdminManaged || (isSetupRoute && onboarding?.companyProfileEditable !== false);
   const approvalStatus = onboarding?.profileApprovalStatus || "draft";
   const hasUploadingInProgress = Object.values(uploadingFields).some(Boolean);
   const savedDocumentUrls = useMemo(
@@ -1109,14 +1114,23 @@ export default function ClientCompanyProfile() {
 
     try {
       setUploadingFields(prev => ({ ...prev, [fieldKey]: true }));
-      const response = await uploadCompanyDocument(documentType, file, fieldKey);
+      const response = isAdminManaged
+        ? await uploadAdminCompanyDocument(adminClientId, documentType, file, fieldKey)
+        : await uploadCompanyDocument(documentType, file, fieldKey);
       const previewUrl = window.URL.createObjectURL(file);
 
       if (previousPendingFile?.token) {
-        await removeTempCompanyDocument(
-          previousPendingFile.documentType || documentType,
-          previousPendingFile.token
-        ).catch(() => {});
+        const removePrevious = isAdminManaged
+          ? removeAdminTempCompanyDocument(
+              adminClientId,
+              previousPendingFile.documentType || documentType,
+              previousPendingFile.token
+            )
+          : removeTempCompanyDocument(
+              previousPendingFile.documentType || documentType,
+              previousPendingFile.token
+            );
+        await removePrevious.catch(() => {});
       }
 
       setPendingDocuments(prev => {
@@ -1154,7 +1168,11 @@ export default function ClientCompanyProfile() {
     }
 
     try {
-      await removeTempCompanyDocument(documentType, pendingFile.token);
+      if (isAdminManaged) {
+        await removeAdminTempCompanyDocument(adminClientId, documentType, pendingFile.token);
+      } else {
+        await removeTempCompanyDocument(documentType, pendingFile.token);
+      }
       revokePreviewUrl(pendingFile.previewUrl);
 
       setPendingDocuments(prev => {
@@ -1272,30 +1290,41 @@ export default function ClientCompanyProfile() {
         documents: documentTokens
       };
 
-      const response = await API.put("/auth/company-profile", payload);
+      const response = await API.put(
+        isAdminManaged
+          ? `/auth/admin/clients/${adminClientId}/company-profile`
+          : "/auth/company-profile",
+        payload
+      );
       const normalized = ensureSetupRouteDefaults(
-        normalizeProfile({ ...response.data, user })
+        normalizeProfile({ ...response.data, user: isAdminManaged ? response.data.user : user })
       );
       Object.values(pendingDocuments).forEach(item => revokePreviewUrl(item?.previewUrl));
 
       setForm(normalized);
       setDocumentCatalog(response.data.documentCatalog || []);
-      if (response.data.onboarding?.companyProfileEditable === false) {
+      if (isAdminManaged) {
+        clearDraft();
+      } else if (response.data.onboarding?.companyProfileEditable === false) {
         clearDraft();
       } else {
         writeDraft(normalized);
       }
       setPendingDocuments({});
-      updateOnboarding(response.data.onboarding || null);
+      if (!isAdminManaged) updateOnboarding(response.data.onboarding || null);
 
       Swal.fire({
         icon: "success",
         title:
-          response.data.onboarding?.profileApprovalStatus === "submitted"
+          isAdminManaged
+            ? "Company profile updated"
+            : response.data.onboarding?.profileApprovalStatus === "submitted"
             ? "Company profile submitted"
             : "Company profile saved",
         text:
-          response.data.onboarding?.profileApprovalStatus === "submitted"
+          isAdminManaged
+            ? "The client’s synchronized read-only profile is now up to date."
+            : response.data.onboarding?.profileApprovalStatus === "submitted"
             ? "Form has been submitted. Your dashboard will be activated within 24 hours."
             : "All section details were saved successfully.",
         confirmButtonColor: "#101eb9"

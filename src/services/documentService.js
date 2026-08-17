@@ -56,6 +56,25 @@ export async function removeTempCompanyDocument(documentType, token) {
   return response.data;
 }
 
+export async function uploadAdminCompanyDocument(clientId, documentType, file, fieldKey) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (fieldKey) formData.append("fieldKey", fieldKey);
+
+  const response = await API.post(
+    `/auth/admin/clients/${clientId}/company-profile/documents/${documentType}`,
+    formData
+  );
+  return response.data;
+}
+
+export async function removeAdminTempCompanyDocument(clientId, documentType, token) {
+  const response = await API.delete(
+    `/auth/admin/clients/${clientId}/company-profile/documents/${documentType}/temp/${token}`
+  );
+  return response.data;
+}
+
 export async function uploadBookingDocument({ bookingId, documentType, file }) {
   const formData = new FormData();
   formData.append("booking_id", bookingId);
