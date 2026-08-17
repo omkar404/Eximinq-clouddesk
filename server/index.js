@@ -568,6 +568,23 @@ app.put(
   }
 );
 
+app.delete(
+  "/auth/admin/clients/:clientId/company-profile",
+  requireAuth,
+  requireAdmin,
+  requireClientProfileOwner,
+  async (req, res, next) => {
+    try {
+      await pool.query("DELETE FROM company_profiles WHERE user_id=$1", [
+        req.companyProfileOwner.id
+      ]);
+      res.status(204).end();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 app.post(
   "/auth/admin/clients/:clientId/company-profile/documents/:documentType",
   requireAuth,
