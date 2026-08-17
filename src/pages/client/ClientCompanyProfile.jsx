@@ -376,8 +376,7 @@ function ensureSetupRouteDefaults(profile) {
   }
   nextPortalCredentials[0] = {
     ...emptyPortal(0),
-    ...nextPortalCredentials[0],
-    portalName: PORTAL_NAME_OPTIONS[0]
+    ...nextPortalCredentials[0]
   };
 
   if (!nextPortalCredentials[1]) {
@@ -385,8 +384,7 @@ function ensureSetupRouteDefaults(profile) {
   }
   nextPortalCredentials[1] = {
     ...emptyPortal(1),
-    ...nextPortalCredentials[1],
-    portalName: PORTAL_NAME_OPTIONS[1]
+    ...nextPortalCredentials[1]
   };
 
   return {
@@ -1779,10 +1777,11 @@ export default function ClientCompanyProfile() {
                     <div className="flex items-center justify-between gap-4">
                       <Field
                         label="Portal Name"
-                        placeholder=""
+                        placeholder="Enter the portal name"
                         value={portal.portalName}
-                        onChange={() => {}}
-                        readOnly
+                        onChange={event =>
+                          updateListItem("portalCredentials", index, "portalName", event.target.value)
+                        }
                         className="flex-1"
                       />
                       <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-rose-600">
@@ -1828,9 +1827,9 @@ export default function ClientCompanyProfile() {
                         </button>
                       </div>
                       <div className="mt-5 grid gap-5 md:grid-cols-3">
-                        <SelectField
+                        <Field
                           label="Portal Name"
-                          placeholder="Select the portal"
+                          placeholder="Enter the portal name"
                           value={portal.portalName}
                           onChange={event =>
                             updateListItem(
@@ -1840,7 +1839,6 @@ export default function ClientCompanyProfile() {
                               event.target.value
                             )
                           }
-                          options={PORTAL_NAME_OPTIONS}
                         />
                         <Field
                           label="User ID"
@@ -2902,9 +2900,9 @@ export default function ClientCompanyProfile() {
                       </div>
 
                       <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                        <SelectField
+                        <Field
                           label="Portal Name"
-                          placeholder="Select the portal name"
+                          placeholder="Enter the portal name"
                           value={portal.portalName}
                           onChange={event =>
                             updateListItem(
@@ -2914,7 +2912,6 @@ export default function ClientCompanyProfile() {
                               event.target.value
                             )
                           }
-                          options={PORTAL_NAME_OPTIONS}
                         />
                         <Field
                           label="User ID"

@@ -3,14 +3,8 @@
 :root {
   color: #0f172a;
   background: #f3f7fb;
-  font-family:
-    "Sora",
-    "Manrope",
-    "Segoe UI",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -46,7 +40,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  overflow: auto;
+  overflow: hidden;
   background: #e7e8eb;
   color: #0f172a;
 }
@@ -376,8 +370,40 @@ textarea:focus-visible {
   min-height: 0;
   min-width: 0;
   flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(12px, 1.5vw, 24px);
+  scrollbar-gutter: stable;
+}
+
+.app-content > * {
+  width: 100%;
+  max-width: 1600px;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.app-content :where(section, article, form, fieldset, div) {
+  min-width: 0;
+}
+
+.app-content :where(h1, h2, h3, h4, p, td, th, label, span) {
+  overflow-wrap: anywhere;
+}
+
+.app-content :where(input, select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.app-content table:not(.dashboard-ledger-table) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  white-space: nowrap;
 }
 
 .premium-sidebar {
@@ -390,6 +416,7 @@ textarea:focus-visible {
     linear-gradient(180deg, #101c32 0%, #091322 100%) !important;
   box-shadow: 0 24px 60px rgba(7, 17, 31, 0.2);
   color: white;
+  flex: 0 0 auto;
 }
 
 .premium-sidebar::after {
@@ -412,6 +439,10 @@ textarea:focus-visible {
   background: rgba(255, 255, 255, 0.82);
   padding: 14px 20px;
   backdrop-filter: blur(22px);
+}
+
+.premium-header > div {
+  min-width: 0;
 }
 
 .premium-search {
@@ -537,6 +568,14 @@ textarea:focus-visible {
   font-weight: 800;
   letter-spacing: -0.045em;
   color: var(--ink-950);
+}
+
+.dashboard-page :where(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+.dashboard-page :where(p, td, th, label, input, select, textarea, button) {
+  line-height: 1.5;
 }
 
 .premium-button {
@@ -745,6 +784,14 @@ textarea:focus {
   .app-content {
     padding: 14px;
   }
+
+  .premium-sidebar:not(.is-open) {
+    max-width: 232px;
+  }
+
+  .header-search {
+    max-width: 360px;
+  }
 }
 
 @media (max-width: 767px) {
@@ -826,6 +873,10 @@ textarea:focus {
     padding: 10px 12px;
   }
 
+  .header-search {
+    max-width: none;
+  }
+
   .metric-strip,
   .grid.lg\:grid-cols-3 {
     grid-template-columns: 1fr;
@@ -833,6 +884,48 @@ textarea:focus {
 
   .premium-metric {
     min-height: 124px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-search {
+    display: none;
+  }
+
+  .header-workspace-title {
+    display: block;
+    flex: 1;
+  }
+
+  .premium-header .premium-icon-button {
+    flex: 0 0 auto;
+  }
+
+  .app-content {
+    padding: 10px;
+  }
+
+  .dashboard-hero,
+  .dashboard-panel,
+  .dashboard-table-card,
+  .rounded-\[32px\],
+  .rounded-3xl {
+    border-radius: 14px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .app-shell {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .app-content {
+    padding: 28px;
+  }
+
+  .premium-sidebar {
+    width: 276px;
   }
 }
 /* Live admin command center */
