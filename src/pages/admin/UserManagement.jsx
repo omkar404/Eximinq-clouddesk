@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import Swal from "sweetalert2";
 import { useAuth } from "../../context/useAuth";
+import API from "../../services/interceptor";
 import {
   UserPlus,
   Users,
@@ -27,7 +27,6 @@ export default function UserManagement() {
     role: "AGENT"
   });
 
-  const token = localStorage.getItem("accessToken");
   const brandColor = "#101eb9";
 
   const toast = Swal.mixin({
@@ -45,23 +44,19 @@ export default function UserManagement() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:3000/auth/users", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await API.get("/auth/users");
       setUsers(res.data);
     } catch (err) {
       console.error("Fetch Error:", err);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadUsers = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/auth/users", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await API.get("/auth/users");
 
         if (isMounted) {
           setUsers(res.data);
@@ -76,7 +71,7 @@ export default function UserManagement() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -103,9 +98,7 @@ export default function UserManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3000/auth/register", form, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await API.post("/auth/register", form);
 
       toast.fire({
         icon: "success",

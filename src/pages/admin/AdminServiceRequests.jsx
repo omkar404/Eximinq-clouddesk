@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine, Building2, CalendarClock, CheckCircle2, ChevronRight,
-  CircleDollarSign, FileText, LoaderCircle, Search, UserRound, X,
+  CircleDollarSign, FileText, LoaderCircle, Plus, Search, Trash2, UserRound, X,
 } from "lucide-react";
 import {
   downloadAdminServiceRequestDocument, getAdminServiceRequest,
@@ -34,6 +34,14 @@ const flattenFormData = (value, prefix = "") => {
   });
 };
 
+const createActionForm = () => ({
+  documents: [],
+  comments: "",
+  dueDate: "",
+  agentId: "",
+  instructions: "",
+});
+
 export default function AdminServiceRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +53,7 @@ export default function AdminServiceRequests() {
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
   const [action, setAction] = useState("");
-  const [actionForm, setActionForm] = useState({ documents: "", comments: "", dueDate: "", agentId: "", instructions: "" });
+  const [actionForm, setActionForm] = useState(createActionForm);
 
   const loadRequests = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -88,7 +96,8 @@ export default function AdminServiceRequests() {
       const data = await getAdminServiceRequest(requestId);
       const request = data.request || data;
       setSelected(request);
-      setAction("");
+        setAction("");
+        setActionForm(createActionForm());
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to open this request.");
     } finally {
@@ -96,14 +105,26 @@ export default function AdminServiceRequests() {
     }
   };
 
+  const selectWorkflowAction = (nextAction) => {
+    setAction(nextAction);
+    setActionForm({
+      ...createActionForm(),
+      documents: nextAction === "clarification" ? [""] : [],
+    });
+  };
+
   const runWorkflowAction = async () => {
     if (!selected) return;
+    if (action === "clarification" && !actionForm.documents.some((document) => document.trim())) {
+      setError("Add at least one required document before submitting the clarification request.");
+      return;
+    }
     setSaving(true);
     try {
       if (action === "clarification") {
         await updateWorkflowRequestStatus(selected.id, {
           status: "NEEDS_CLARIFICATION",
-          requestedDocuments: actionForm.documents.split(",").map((item) => item.trim()).filter(Boolean),
+      requestedDocuments: actionForm.documents.map((item) => item.trim()).filter(Boolean),
           comments: actionForm.comments, dueDate: actionForm.dueDate || null
         });
       } else if (action === "initial-review") {
@@ -124,7 +145,7 @@ export default function AdminServiceRequests() {
       await openRequest(selected.id);
       await loadRequests();
       setAction("");
-      setActionForm({ documents: "", comments: "", dueDate: "", agentId: "", instructions: "" });
+    setActionForm(createActionForm());
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to complete this workflow action.");
     } finally { setSaving(false); }
@@ -234,7 +255,7 @@ export default function AdminServiceRequests() {
                       <button onClick={() => downloadWorkflowFile({ role: "admin", requestId: selected.id, kind: "output", fileId: document.id, name: document.name })}>Download</button></article>)}</div>
                   </DetailTitle>}
                   <DetailTitle icon={<CheckCircle2 />} title="Update status" subtitle="Every saved change is synchronized to the client dashboard">
-                    <select value={action} onChange={(event) => setAction(event.target.value)} className="mb-4 w-full rounded-xl border border-slate-300 bg-white p-3 font-bold text-slate-800">
+              <select value={action} onChange={(event) => selectWorkflowAction(event.target.value)} className="mb-4 w-full rounded-xl border border-slate-300 bg-white p-3 font-bold text-slate-800">
                       <option value="">Choose next workflow action</option>
                       {["SUBMITTED", "DOCUMENTS_RESUBMITTED"].includes(selected.status) && <option value="initial-review">Under Review</option>}
                       {["SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_RESUBMITTED", "ADMIN_REVIEW"].includes(selected.status) && <option value="clarification">Needs Clarification</option>}
@@ -244,23 +265,79 @@ export default function AdminServiceRequests() {
                       {["AGENT_COMPLETED", "ADMIN_REVIEW"].includes(selected.status) && <option value="reject">Rejected</option>}
                     </select>
                     <div className="flex flex-wrap gap-2">
-                      {["SUBMITTED", "DOCUMENTS_RESUBMITTED"].includes(selected.status) &&
-                        <button className="rounded-xl border border-blue-300 px-4 py-2 font-bold text-blue-700" onClick={() => setAction("initial-review")}>Start review</button>}
-                      {["SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_RESUBMITTED", "ADMIN_REVIEW"].includes(selected.status) && <>
-                        <button className="rounded-xl border px-4 py-2 font-bold text-amber-700" onClick={() => setAction("clarification")}>Needs clarification</button>
-                        <button className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white" onClick={() => setAction("assign")}>Assign agent</button></>}
-                      {selected.status === "AGENT_COMPLETED" && <button className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white" onClick={() => setAction("review")}>Start admin review</button>}
-                      {["AGENT_COMPLETED", "ADMIN_REVIEW"].includes(selected.status) && <>
-                        <button className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white" onClick={() => setAction("approve")}>Approve & complete</button>
-                        <button className="rounded-xl bg-rose-600 px-4 py-2 font-bold text-white" onClick={() => setAction("reject")}>Reject</button></>}
-                    </div>
-                    {action && <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4">
-                      {action === "clarification" && <><label className="text-xs font-black uppercase tracking-wider text-amber-700">Required documents</label><input className="rounded-xl border p-3" placeholder="Commercial invoice, original EODC, signed declaration" value={actionForm.documents} onChange={(e) => setActionForm((v) => ({ ...v, documents: e.target.value }))} /></>}
+              {["SUBMITTED", "DOCUMENTS_RESUBMITTED"].includes(selected.status) &&
+                <button className="rounded-xl border border-blue-300 px-4 py-2 font-bold text-blue-700" onClick={() => selectWorkflowAction("initial-review")}>Start review</button>}
+              {["SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_RESUBMITTED", "ADMIN_REVIEW"].includes(selected.status) && <>
+                <button className="rounded-xl border px-4 py-2 font-bold text-amber-700" onClick={() => selectWorkflowAction("clarification")}>Needs clarification</button>
+                <button className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white" onClick={() => selectWorkflowAction("assign")}>Assign agent</button></>}
+              {selected.status === "AGENT_COMPLETED" && <button className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white" onClick={() => selectWorkflowAction("review")}>Start admin review</button>}
+              {["AGENT_COMPLETED", "ADMIN_REVIEW"].includes(selected.status) && <>
+                <button className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white" onClick={() => selectWorkflowAction("approve")}>Approve & complete</button>
+                <button className="rounded-xl bg-rose-600 px-4 py-2 font-bold text-white" onClick={() => selectWorkflowAction("reject")}>Reject</button></>}
+            </div>
+            {action && <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4">
+              {action === "clarification" && (
+                <section className="clarification-documents" aria-label="Required documents">
+                  <div className="clarification-documents__header">
+                    <label className="clarification-documents__label">Required documents</label>
+                    <button
+                      type="button"
+                      className="clarification-documents__add"
+                      onClick={() =>
+                        setActionForm((value) => ({
+                          ...value,
+                          documents: [...value.documents, ""],
+                        }))
+                      }
+                    >
+                      <Plus size={15} aria-hidden="true" /> Add document
+                    </button>
+                  </div>
+                  <div className="clarification-documents__list">
+                    {actionForm.documents.length === 0 ? (
+                      <p className="clarification-documents__empty">
+                        No documents added yet. Use Add document to create a requirement.
+                      </p>
+                    ) : (
+                      actionForm.documents.map((document, index) => (
+                        <div className="clarification-document-row" key={`required-document-${index}`}>
+                          <input
+                            className="clarification-document-input"
+                            placeholder={`Required document ${index + 1}`}
+                            value={document}
+                            onChange={(event) =>
+                              setActionForm((value) => ({
+                                ...value,
+                                documents: value.documents.map((entry, entryIndex) =>
+                                  entryIndex === index ? event.target.value : entry
+                                ),
+                              }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="clarification-document-remove"
+                            aria-label={`Remove required document ${index + 1}`}
+                            onClick={() =>
+                              setActionForm((value) => ({
+                                ...value,
+                                documents: value.documents.filter((_, documentIndex) => documentIndex !== index),
+                              }))
+                            }
+                          >
+                            <Trash2 size={14} aria-hidden="true" /> Remove
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              )}
                       {action === "assign" && <select className="rounded-xl border p-3" value={actionForm.agentId} onChange={(e) => setActionForm((v) => ({ ...v, agentId: e.target.value }))}><option value="">Select agent</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} ({agent.active_tasks} active)</option>)}</select>}
                       {["clarification", "approve", "reject"].includes(action) && <textarea className="rounded-xl border p-3" placeholder={action === "clarification" ? "Explain the missing information and what the client must correct" : "Comments or instructions"} value={actionForm.comments} onChange={(e) => setActionForm((v) => ({ ...v, comments: e.target.value }))} />}
                       {action === "assign" && <textarea className="rounded-xl border p-3" placeholder="Agent instructions" value={actionForm.instructions} onChange={(e) => setActionForm((v) => ({ ...v, instructions: e.target.value }))} />}
                       {["clarification", "assign"].includes(action) && <input type="date" className="rounded-xl border p-3" value={actionForm.dueDate} onChange={(e) => setActionForm((v) => ({ ...v, dueDate: e.target.value }))} />}
-                      <div className="flex gap-2"><button disabled={saving} onClick={runWorkflowAction} className="rounded-xl bg-slate-950 px-4 py-2 font-bold text-white">{action === "clarification" ? "Submit Request" : "Save Status"}</button><button onClick={() => setAction("")} className="rounded-xl border px-4 py-2">Cancel</button></div>
+              <div className="flex gap-2"><button disabled={saving} onClick={runWorkflowAction} className="rounded-xl bg-slate-950 px-4 py-2 font-bold text-white">{action === "clarification" ? "Submit Request" : "Save Status"}</button><button onClick={() => { setAction(""); setActionForm(createActionForm()); }} className="rounded-xl border px-4 py-2">Cancel</button></div>
                     </div>}
                   </DetailTitle>
                 </div>

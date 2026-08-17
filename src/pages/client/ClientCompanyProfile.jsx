@@ -247,8 +247,10 @@ function normalizeProfile(data) {
     rcmcDocumentPath: source.rcmc_document_path || "",
     shopEstablishmentDocumentPath:
       source.shop_establishment_document_path || "",
+    shopEstablishmentNumber: source.shop_establishment_number || "",
     partnershipDeedDocumentPath:
       source.partnership_deed_document_path || "",
+    partnershipDeedNumber: source.partnership_deed_number || "",
     isSez:
       source.is_sez === true ? "YES" : source.is_sez === false ? "NO" : "NO",
     branches:
@@ -395,21 +397,6 @@ function ensureSetupRouteDefaults(profile) {
       profile.keyPeople?.length > 0 ? profile.keyPeople : [emptyKeyPerson(0)],
     portalCredentials: nextPortalCredentials
   };
-}
-
-function formatDateForDisplay(value) {
-  if (!value) {
-    return "";
-  }
-
-  const normalizedValue = String(value).trim();
-  const isoDateMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (isoDateMatch) {
-    return `${isoDateMatch[3]}-${isoDateMatch[2]}-${isoDateMatch[1]}`;
-  }
-
-  return normalizedValue;
 }
 
 function getSetupRouteValidationMessage(form) {
@@ -680,7 +667,7 @@ function Field({
             title={infoText}
           >
             <Info size={12} />
-            Auto-extracted
+            Read only
           </span>
         ) : null}
       </span>
@@ -853,7 +840,6 @@ export default function ClientCompanyProfile() {
   const location = useLocation();
   const { user, onboarding, updateOnboarding } = useAuth();
   const [form, setForm] = useState(() => normalizeProfile({}));
-  const [persistedForm, setPersistedForm] = useState(() => normalizeProfile({}));
   const [documentCatalog, setDocumentCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -872,7 +858,6 @@ export default function ClientCompanyProfile() {
         );
         const draft = readDraft();
         const canEditProfile = response.data.onboarding?.companyProfileEditable !== false;
-        setPersistedForm(normalized);
         const mergedProfile = canEditProfile
           ? ensureSetupRouteDefaults(mergeDraftIntoProfile(normalized, draft))
           : normalized;
@@ -1151,106 +1136,11 @@ export default function ClientCompanyProfile() {
         };
       });
 
-      const extractedFields = response.extractedFields || {};
-
-      if (fieldKey === "pan" && extractedFields.pan_number) {
-        updateField("panNumber", extractedFields.pan_number);
-      }
-
-      if (fieldKey === "iec") {
-        if (extractedFields.iec_number) {
-          updateField("iecNumber", extractedFields.iec_number);
-        }
-        if (extractedFields.iec_issued_at) {
-          updateField("iecIssuedAt", extractedFields.iec_issued_at);
-        }
-      }
-
-      if (fieldKey.startsWith("gstin_")) {
-        const gstinIndex = Number(fieldKey.split("_")[1] || 0);
-        if (extractedFields.gstin) {
-          updateListItem("gstinDetails", gstinIndex, "gstin", extractedFields.gstin);
-        }
-      }
-
-      if (fieldKey === "incorporation") {
-        if (extractedFields.incorporation_certificate_no) {
-          updateField(
-            "incorporationCertificateNo",
-            extractedFields.incorporation_certificate_no
-          );
-        }
-        if (extractedFields.date_of_incorporation) {
-          updateField("dateOfIncorporation", extractedFields.date_of_incorporation);
-        }
-      }
-
-      if (fieldKey === "rcmc") {
-        if (extractedFields.rcmc_number) {
-          updateField("rcmcNumber", extractedFields.rcmc_number);
-        }
-        if (extractedFields.rcmc_valid_until) {
-          updateField("rcmcValidUntil", extractedFields.rcmc_valid_until);
-        }
-      }
-
-      if (fieldKey === "udhyam") {
-        if (extractedFields.udhyam_certificate_no) {
-          updateField("udhyamCertificateNo", extractedFields.udhyam_certificate_no);
-        }
-        if (extractedFields.udhyam_status) {
-          updateField("udhyamStatus", extractedFields.udhyam_status);
-        }
-      }
-
-      if (fieldKey.startsWith("key_person_pan_") && extractedFields.pan_number) {
-        const personIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem("keyPeople", personIndex, "panCardNo", extractedFields.pan_number);
-      }
-
-      if (
-        fieldKey.startsWith("key_person_aadhar_") &&
-        extractedFields.aadhar_card_number
-      ) {
-        const personIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "keyPeople",
-          personIndex,
-          "aadharCardNo",
-          extractedFields.aadhar_card_number
-        );
-      }
-
-      if (
-        fieldKey.startsWith("authorised_signatory_pan_") &&
-        extractedFields.pan_number
-      ) {
-        const signatoryIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "authorisedSignatories",
-          signatoryIndex,
-          "panCardNo",
-          extractedFields.pan_number
-        );
-      }
-
-      if (
-        fieldKey.startsWith("authorised_signatory_aadhar_") &&
-        extractedFields.aadhar_card_number
-      ) {
-        const signatoryIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "authorisedSignatories",
-          signatoryIndex,
-          "aadharCardNo",
-          extractedFields.aadhar_card_number
-        );
-      }
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Upload failed",
-        text: err.response?.data?.message || "Unable to upload and validate this document.",
+        text: err.response?.data?.message || "Unable to upload this document.",
         confirmButtonColor: "#101eb9"
       });
     } finally {
@@ -1275,77 +1165,6 @@ export default function ClientCompanyProfile() {
         return next;
       });
 
-      if (fieldKey === "pan") {
-        updateField("panNumber", persistedForm.panNumber || "");
-      }
-
-      if (fieldKey === "iec") {
-        updateField("iecNumber", persistedForm.iecNumber || "");
-        updateField("iecIssuedAt", persistedForm.iecIssuedAt || "");
-      }
-
-      if (fieldKey.startsWith("gstin_")) {
-        const gstinIndex = Number(fieldKey.split("_")[1] || 0);
-        updateListItem(
-          "gstinDetails",
-          gstinIndex,
-          "gstin",
-          persistedForm.gstinDetails[gstinIndex]?.gstin || ""
-        );
-      }
-
-      if (fieldKey === "incorporation") {
-        updateField(
-          "incorporationCertificateNo",
-          persistedForm.incorporationCertificateNo || ""
-        );
-        updateField("dateOfIncorporation", persistedForm.dateOfIncorporation || "");
-      }
-
-      if (fieldKey === "udhyam") {
-        updateField("udhyamCertificateNo", persistedForm.udhyamCertificateNo || "");
-        updateField("udhyamStatus", persistedForm.udhyamStatus || "");
-      }
-
-      if (fieldKey.startsWith("key_person_pan_")) {
-        const personIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "keyPeople",
-          personIndex,
-          "panCardNo",
-          persistedForm.keyPeople[personIndex]?.panCardNo || ""
-        );
-      }
-
-      if (fieldKey.startsWith("key_person_aadhar_")) {
-        const personIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "keyPeople",
-          personIndex,
-          "aadharCardNo",
-          persistedForm.keyPeople[personIndex]?.aadharCardNo || ""
-        );
-      }
-
-      if (fieldKey.startsWith("authorised_signatory_pan_")) {
-        const signatoryIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "authorisedSignatories",
-          signatoryIndex,
-          "panCardNo",
-          persistedForm.authorisedSignatories[signatoryIndex]?.panCardNo || ""
-        );
-      }
-
-      if (fieldKey.startsWith("authorised_signatory_aadhar_")) {
-        const signatoryIndex = Number(fieldKey.split("_")[3] || 0);
-        updateListItem(
-          "authorisedSignatories",
-          signatoryIndex,
-          "aadharCardNo",
-          persistedForm.authorisedSignatories[signatoryIndex]?.aadharCardNo || ""
-        );
-      }
     } catch (err) {
       Swal.fire({
         icon: "error",
@@ -1429,14 +1248,22 @@ export default function ClientCompanyProfile() {
         firmMobileNo: form.firmMobileNo,
         firmEmail: form.firmEmail,
         panNumber: form.panNumber,
+        panDocumentPath: form.panDocumentPath,
         iecNumber: form.iecNumber,
         iecIssuedAt: form.iecIssuedAt,
+        iecDocumentPath: form.iecDocumentPath,
         gstFilingStatus: form.gstFilingStatus,
         gstinDetails: form.gstinDetails,
         dateOfIncorporation: form.dateOfIncorporation,
         incorporationCertificateNo: form.incorporationCertificateNo,
+        incorporationDocumentPath: form.incorporationDocumentPath,
         udhyamCertificateNo: form.udhyamCertificateNo,
         udhyamStatus: form.udhyamStatus,
+        udhyamDocumentPath: form.udhyamDocumentPath,
+        shopEstablishmentNumber: form.shopEstablishmentNumber,
+        shopEstablishmentDocumentPath: form.shopEstablishmentDocumentPath,
+        partnershipDeedNumber: form.partnershipDeedNumber,
+        partnershipDeedDocumentPath: form.partnershipDeedDocumentPath,
         rcmcNumber: form.rcmcNumber,
         rcmcValidUntil: form.rcmcValidUntil,
         isSez: form.isSez,
@@ -1453,7 +1280,6 @@ export default function ClientCompanyProfile() {
       );
       Object.values(pendingDocuments).forEach(item => revokePreviewUrl(item?.previewUrl));
 
-      setPersistedForm(normalized);
       setForm(normalized);
       setDocumentCatalog(response.data.documentCatalog || []);
       if (response.data.onboarding?.companyProfileEditable === false) {
@@ -1607,11 +1433,11 @@ export default function ClientCompanyProfile() {
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                   {activeQuickFormSection.key === "company"
-                    ? "Capture the firm identity first so all document extraction and portal details stay mapped to the right account."
+                    ? "Capture the firm identity first so documents and portal details stay mapped to the right account."
                     : activeQuickFormSection.key === "documents"
-                      ? "Upload any company documents here. Extracted IDs and the incorporation date will appear on this same page right after upload."
+                      ? "Enter each registration number manually and upload its supporting document separately."
                       : activeQuickFormSection.key === "people"
-                        ? "Add the decision-makers listed in the quick form and let PAN and Aadhaar numbers fill in automatically from the uploaded files."
+                        ? "Add each decision-maker, enter PAN and Aadhaar numbers manually, and upload the supporting files."
                         : "Finish the mandatory portal credentials and add any extra portal access in one compact place."}
                 </p>
               </div>
@@ -1663,12 +1489,12 @@ export default function ClientCompanyProfile() {
                 <div className="grid gap-4 lg:grid-cols-2">
                   <DocumentField
                     label="Attachment - PAN Card Copy"
-                    helper="Upload the PAN card copy. The PAN number will be extracted automatically."
+                    helper="Upload the PAN card copy as a supporting attachment. Enter the PAN number separately below."
                     value={form.panDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.pan}
                     fieldKey="pan"
                     documentType="pan"
-                    accept=".pdf"
+                    accept=".pdf,.png,.jpg,.jpeg"
                     pendingDocuments={pendingDocuments}
                     onUpload={handleDocumentUpload}
                     uploading={Boolean(uploadingFields.pan)}
@@ -1678,12 +1504,12 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - IEC Certificate Copy"
-                    helper="Upload the IEC certificate copy. The IEC number will be extracted automatically."
+                    helper="Upload the IEC certificate copy as a supporting attachment. Enter the IEC number separately below."
                     value={form.iecDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.iec}
                     fieldKey="iec"
                     documentType="iec"
-                    accept=".pdf"
+                    accept=".pdf,.png,.jpg,.jpeg"
                     pendingDocuments={pendingDocuments}
                     onUpload={handleDocumentUpload}
                     uploading={Boolean(uploadingFields.iec)}
@@ -1693,12 +1519,12 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - GST Certificate Copy"
-                    helper="Upload the GST certificate copy. The GST number will be extracted automatically."
+                    helper="Upload the GST certificate copy as a supporting attachment. Enter the GSTIN separately below."
                     value={form.gstinDetails[0]?.documentPath}
                     savedDocumentUrl={savedDocumentUrls.gstin_0}
                     fieldKey="gstin_0"
                     documentType="gstin"
-                    accept=".pdf"
+                    accept=".pdf,.png,.jpg,.jpeg"
                     pendingDocuments={pendingDocuments}
                     onUpload={handleDocumentUpload}
                     uploading={Boolean(uploadingFields.gstin_0)}
@@ -1708,7 +1534,7 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - Incorporation Certificate Copy"
-                    helper="Upload the incorporation certificate copy. The incorporation number will be extracted automatically."
+                    helper="Upload the incorporation certificate copy. Enter its number and date separately below."
                     value={form.incorporationDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.incorporation}
                     fieldKey="incorporation"
@@ -1723,7 +1549,7 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - Udhyam Certificate Copy"
-                    helper="Upload the Udhyam certificate copy. The certificate number will be extracted automatically."
+                    helper="Upload the Udyam certificate copy. Enter its registration number separately below."
                     value={form.udhyamDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.udhyam}
                     fieldKey="udhyam"
@@ -1738,7 +1564,7 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - Shop Establishment"
-                    helper="Optional upload only. No auto-fetch or data extraction will run for this file."
+                    helper="Upload the Shop & Establishment certificate and enter its registration number separately below."
                     value={form.shopEstablishmentDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.shopEstablishment}
                     fieldKey="shopEstablishment"
@@ -1753,7 +1579,7 @@ export default function ClientCompanyProfile() {
                   />
                   <DocumentField
                     label="Attachment - Partnership Deed"
-                    helper="Optional upload only. No auto-fetch or data extraction will run for this file."
+                    helper="Upload the partnership deed and enter its deed or registration number separately below."
                     value={form.partnershipDeedDocumentPath}
                     savedDocumentUrl={savedDocumentUrls.partnershipDeed}
                     fieldKey="partnershipDeed"
@@ -1772,73 +1598,73 @@ export default function ClientCompanyProfile() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                        Auto-Filled IDs
+                        Document & Registration Numbers
                       </p>
                       <h3 className="mt-2 text-lg font-bold text-slate-900">
-                        Extracted directly from uploaded documents
+                        Enter the numbers shown on your supporting documents
                       </h3>
                     </div>
                     <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
-                      Visible instantly
+                      Manual entry
                     </span>
                   </div>
 
                   <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     <Field
                       label="PAN Card Number"
-                      placeholder="Will appear after PAN upload"
+                      placeholder="Enter PAN number"
                       value={form.panNumber}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded PAN document and cannot be edited manually."
+                      onChange={event => updateField("panNumber", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="IEC Certificate Number"
-                      placeholder="Will appear after IEC upload"
+                      placeholder="Enter IEC number"
                       value={form.iecNumber}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded IEC document and cannot be edited manually."
+                      onChange={event => updateField("iecNumber", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="GST Certificate Number"
-                      placeholder="Will appear after GST upload"
+                      placeholder="Enter GSTIN"
                       value={form.gstinDetails[0]?.gstin || ""}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded GST certificate and cannot be edited manually."
+                      onChange={event => updateListItem("gstinDetails", 0, "gstin", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Incorporation Certificate Number"
-                      placeholder="Will appear after incorporation upload"
+                      placeholder="Enter incorporation certificate number"
                       value={form.incorporationCertificateNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded incorporation document and cannot be edited manually."
+                      onChange={event => updateField("incorporationCertificateNo", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Incorporation Date"
-                      placeholder="Will appear after incorporation upload"
-                      value={formatDateForDisplay(form.dateOfIncorporation)}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This date is auto-extracted from the uploaded incorporation document and shown in dd-mm-yyyy format."
+                      placeholder="Select incorporation date"
+                      type="date"
+                      value={form.dateOfIncorporation}
+                      onChange={event => updateField("dateOfIncorporation", event.target.value)}
                     />
                     <Field
                       label="UDYAM Registration Number"
-                      placeholder="Will appear after Udhyam upload"
+                      placeholder="Enter UDYAM registration number"
                       value={form.udhyamCertificateNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded Udhyam document and cannot be edited manually."
+                      onChange={event => updateField("udhyamCertificateNo", event.target.value.toUpperCase())}
+                    />
+                    <SelectField
+                      label="UDYAM Status"
+                      placeholder="Select UDYAM status"
+                      value={form.udhyamStatus}
+                      onChange={event => updateField("udhyamStatus", event.target.value)}
+                      options={UDHYAM_STATUS_OPTIONS}
                     />
                     <Field
-                      label="UDYAM Status"
-                      placeholder="Will appear after Udhyam upload"
-                      value={form.udhyamStatus}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded Udhyam document when the status is detected."
+                      label="Shop & Establishment Number"
+                      placeholder="Enter registration number"
+                      value={form.shopEstablishmentNumber}
+                      onChange={event => updateField("shopEstablishmentNumber", event.target.value.toUpperCase())}
+                    />
+                    <Field
+                      label="Partnership Deed Number"
+                      placeholder="Enter deed or registration number"
+                      value={form.partnershipDeedNumber}
+                      onChange={event => updateField("partnershipDeedNumber", event.target.value.toUpperCase())}
                     />
                   </div>
                 </div>
@@ -1882,19 +1708,19 @@ export default function ClientCompanyProfile() {
                       />
                       <Field
                         label="PAN Card Number"
-                        placeholder="Will appear after PAN upload"
+                        placeholder="Enter PAN number"
                         value={person.panCardNo}
-                        onChange={() => {}}
-                        readOnly
-                        infoText="This PAN number is auto-extracted from the uploaded document and cannot be edited manually."
+                        onChange={event =>
+                          updateListItem("keyPeople", index, "panCardNo", event.target.value.toUpperCase())
+                        }
                       />
                       <Field
                         label="Aadhaar Card Number"
-                        placeholder="Will appear after Aadhaar upload"
+                        placeholder="Enter Aadhaar number"
                         value={person.aadharCardNo}
-                        onChange={() => {}}
-                        readOnly
-                        infoText="This Aadhaar number is auto-extracted from the uploaded document and cannot be edited manually."
+                        onChange={event =>
+                          updateListItem("keyPeople", index, "aadharCardNo", event.target.value.replace(/\D/g, "").slice(0, 12))
+                        }
                       />
                     </div>
 
@@ -2281,27 +2107,21 @@ export default function ClientCompanyProfile() {
                     />
                     <Field
                       label="PAN Number"
-                      placeholder="PAN number will appear after document upload"
+                      placeholder="Enter PAN number"
                       value={form.panNumber}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded PAN document and cannot be edited manually."
+                      onChange={event => updateField("panNumber", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="IEC Number"
-                      placeholder="IEC number will appear after document upload"
+                      placeholder="Enter IEC number"
                       value={form.iecNumber}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded IEC document and cannot be edited manually."
+                      onChange={event => updateField("iecNumber", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Udhyam Certificate Number"
-                      placeholder="Udhyam certificate number will appear after document upload"
+                      placeholder="Enter UDYAM registration number"
                       value={form.udhyamCertificateNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This value is auto-extracted from the uploaded Udhyam document and cannot be edited manually."
+                      onChange={event => updateField("udhyamCertificateNo", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Firm Mobile Number"
@@ -2369,11 +2189,9 @@ export default function ClientCompanyProfile() {
                           <div className="grid gap-4 md:grid-cols-[1fr,auto]">
                             <Field
                               label={`GSTIN Number ${index + 1}`}
-                              placeholder="Upload the GST certificate to auto-fill the GSTIN"
+                              placeholder="Enter GSTIN"
                               value={item.gstin}
-                              onChange={() => {}}
-                              readOnly
-                              infoText="This GSTIN is auto-extracted from the uploaded GST certificate and cannot be edited manually."
+                              onChange={event => updateListItem("gstinDetails", index, "gstin", event.target.value.toUpperCase())}
                             />
                             <button
                               type="button"
@@ -2394,7 +2212,7 @@ export default function ClientCompanyProfile() {
                               savedDocumentUrl={savedDocumentUrls[`gstin_${index}`]}
                               fieldKey={`gstin_${index}`}
                               documentType="gstin"
-                              accept=".pdf"
+                              accept=".pdf,.png,.jpg,.jpeg"
                               pendingDocuments={pendingDocuments}
                               onUpload={handleDocumentUpload}
                               uploading={Boolean(uploadingFields[`gstin_${index}`])}
@@ -2830,19 +2648,15 @@ export default function ClientCompanyProfile() {
                     />
                     <Field
                       label="PAN Card Number"
-                      placeholder="PAN number will appear after document upload"
+                      placeholder="Enter PAN number"
                       value={person.panCardNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This PAN number is auto-extracted from the uploaded document and cannot be edited manually."
+                      onChange={event => updateListItem("keyPeople", index, "panCardNo", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Aadhaar Card Number"
-                      placeholder="Aadhaar number will appear after document upload"
+                      placeholder="Enter Aadhaar number"
                       value={person.aadharCardNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This Aadhaar number is auto-extracted from the uploaded document and cannot be edited manually."
+                      onChange={event => updateListItem("keyPeople", index, "aadharCardNo", event.target.value.replace(/\D/g, "").slice(0, 12))}
                     />
                     <Field
                       label="DIN"
@@ -2963,11 +2777,9 @@ export default function ClientCompanyProfile() {
                     />
                     <Field
                       label="PAN Card Number"
-                      placeholder="PAN number will appear after document upload"
+                      placeholder="Enter PAN number"
                       value={signatory.panCardNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This PAN number is auto-extracted from the uploaded document and cannot be edited manually."
+                      onChange={event => updateListItem("authorisedSignatories", index, "panCardNo", event.target.value.toUpperCase())}
                     />
                     <Field
                       label="Mobile Number"
@@ -2997,11 +2809,9 @@ export default function ClientCompanyProfile() {
                     />
                     <Field
                       label="Aadhaar Card Number"
-                      placeholder="Aadhaar number will appear after document upload"
+                      placeholder="Enter Aadhaar number"
                       value={signatory.aadharCardNo}
-                      onChange={() => {}}
-                      readOnly
-                      infoText="This Aadhaar number is auto-extracted from the uploaded document and cannot be edited manually."
+                      onChange={event => updateListItem("authorisedSignatories", index, "aadharCardNo", event.target.value.replace(/\D/g, "").slice(0, 12))}
                     />
                   </div>
 

@@ -1,11 +1,15 @@
 import "dotenv/config";
 import crypto from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { unlink } from "node:fs/promises";
+import { extname, resolve } from "node:path";
 import process from "node:process";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import jwt from "jsonwebtoken";
+import multer from "multer";
 import { pool } from "./database/pool.js";
 import { createCertificateOfOriginRouter } from "./routes/certificateOfOrigin.routes.js";
 import { createFinanceRouter } from "./routes/finance.routes.js";
@@ -34,8 +38,25 @@ import { createEprAuthorizationRouter } from "./routes/eprAuthorization.routes.j
 import { createRequestWorkflowRouters } from "./routes/requestWorkflow.routes.js";
 import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
 import { createServiceCatalogRouter } from "./routes/serviceCatalog.routes.js";
+import { createLicensingRouter } from "./routes/licensing.routes.js";
 
 const app = express();
+const companyDocumentDirectory = resolve("server/uploads/company-profile");
+mkdirSync(companyDocumentDirectory, { recursive: true });
+const allowedCompanyDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const companyDocumentUpload = multer({
+  storage: multer.diskStorage({
+    destination: companyDocumentDirectory,
+    filename(req, file, callback) {
+      callback(null, `${req.user.id}__${crypto.randomUUID()}${extname(file.originalname).toLowerCase()}`);
+    }
+  }),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter(_req, file, callback) {
+    const accepted = allowedCompanyDocumentTypes.has(file.mimetype);
+    callback(accepted ? null : new Error("Only PDF, JPG, and PNG files are supported"), accepted);
+  }
+});
 const port = Number(process.env.PORT || 4001);
 const jwtSecret = process.env.JWT_SECRET;
 const appOrigins = new Set(
@@ -152,6 +173,22 @@ async function onboardingFor(user) {
 }
 
 function normalizeCompanyProfilePayload(body) {
+  const documents = body.documents || {};
+  const gstinDetails = (body.gstinDetails || []).map((item, index) => ({
+    ...item,
+    documentPath: documents[`gstin_${index}`] || item.documentPath || ""
+  }));
+  const keyPeople = (body.keyPeople || []).map((item, index) => ({
+    ...item,
+    panDocumentPath: documents[`key_person_pan_${index}`] || item.panDocumentPath || "",
+    aadharDocumentPath: documents[`key_person_aadhar_${index}`] || item.aadharDocumentPath || ""
+  }));
+  const authorisedSignatories = (body.authorisedSignatories || []).map((item, index) => ({
+    ...item,
+    panDocumentPath: documents[`authorised_signatory_pan_${index}`] || item.panDocumentPath || "",
+    aadharDocumentPath: documents[`authorised_signatory_aadhar_${index}`] || item.aadharDocumentPath || ""
+  }));
+
   return {
     company_name: body.companyName || "",
     company_type: body.companyType || "",
@@ -161,23 +198,58 @@ function normalizeCompanyProfilePayload(body) {
     firm_mobile_no: body.firmMobileNo || "",
     correspondence_email: body.firmEmail || "",
     pan_number: body.panNumber || "",
+    pan_document_path: documents.pan || body.panDocumentPath || "",
     iec_number: body.iecNumber || "",
     iec_issued_at: body.iecIssuedAt || "",
+    iec_document_path: documents.iec || body.iecDocumentPath || "",
     gst_filing_status: body.gstFilingStatus || "",
-    gstin_details: body.gstinDetails || [],
+    gstin_details: gstinDetails,
     date_of_incorporation: body.dateOfIncorporation || "",
     incorporation_certificate_no: body.incorporationCertificateNo || "",
+    incorporation_document_path: documents.incorporation || body.incorporationDocumentPath || "",
     udhyam_certificate_no: body.udhyamCertificateNo || "",
     udhyam_status: body.udhyamStatus || "",
+    udhyam_document_path: documents.udhyam || body.udhyamDocumentPath || "",
+    shop_establishment_number: body.shopEstablishmentNumber || "",
+    shop_establishment_document_path: documents.shopEstablishment || body.shopEstablishmentDocumentPath || "",
+    partnership_deed_number: body.partnershipDeedNumber || "",
+    partnership_deed_document_path: documents.partnershipDeed || body.partnershipDeedDocumentPath || "",
     rcmc_number: body.rcmcNumber || "",
     rcmc_valid_until: body.rcmcValidUntil || "",
     is_sez: body.isSez === "YES" || body.isSez === true,
     branches: body.branches || [],
-    key_people: body.keyPeople || [],
-    authorised_signatories: body.authorisedSignatories || [],
+    key_people: keyPeople,
+    authorised_signatories: authorisedSignatories,
     portal_credentials: body.portalCredentials || [],
-    documents: body.documents || {}
+    documents
   };
+}
+
+function companyDocumentCatalog(profile = {}) {
+  const documents = {
+    ...(profile.documents || {}),
+    pan: profile.pan_document_path,
+    iec: profile.iec_document_path,
+    incorporation: profile.incorporation_document_path,
+    udhyam: profile.udhyam_document_path,
+    shopEstablishment: profile.shop_establishment_document_path,
+    partnershipDeed: profile.partnership_deed_document_path
+  };
+  (profile.gstin_details || []).forEach((item, index) => {
+    documents[`gstin_${index}`] = item.documentPath || item.document_path;
+  });
+  (profile.key_people || []).forEach((item, index) => {
+    documents[`key_person_pan_${index}`] = item.panDocumentPath;
+    documents[`key_person_aadhar_${index}`] = item.aadharDocumentPath;
+  });
+  (profile.authorised_signatories || []).forEach((item, index) => {
+    documents[`authorised_signatory_pan_${index}`] = item.panDocumentPath;
+    documents[`authorised_signatory_aadhar_${index}`] = item.aadharDocumentPath;
+  });
+  return Object.entries(documents).filter(([, token]) => token).map(([key, token]) => ({
+    key,
+    download_url: `/auth/company-profile/documents/file/${encodeURIComponent(token)}`
+  }));
 }
 
 async function requireAuth(req, res, next) {
@@ -274,6 +346,51 @@ app.post("/auth/logout", async (req, res, next) => {
   }
 });
 
+app.get("/auth/company-profile/documents/file/:token", requireAuth, async (req, res, next) => {
+  try {
+    const token = String(req.params.token || "");
+    if (!token.startsWith(`${req.user.id}__`) || token !== token.split("/").pop()) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.sendFile(resolve(companyDocumentDirectory, token));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post(
+  "/auth/company-profile/documents/:documentType",
+  requireAuth,
+  companyDocumentUpload.single("file"),
+  (req, res) => {
+    if (req.user.role !== "CLIENT") {
+      return res.status(403).json({ message: "Client access required" });
+    }
+    res.status(201).json({
+      document: {
+        token: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size
+      }
+    });
+  }
+);
+
+app.delete("/auth/company-profile/documents/:documentType/temp/:token", requireAuth, async (req, res, next) => {
+  try {
+    const token = String(req.params.token || "");
+    if (!token.startsWith(`${req.user.id}__`) || token !== token.split("/").pop()) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    await unlink(resolve(companyDocumentDirectory, token));
+    res.status(204).end();
+  } catch (error) {
+    if (error.code === "ENOENT") return res.status(204).end();
+    next(error);
+  }
+});
+
 app.get("/auth/company-profile", requireAuth, async (req, res, next) => {
   try {
     if (req.user.role !== "CLIENT") {
@@ -286,7 +403,7 @@ app.get("/auth/company-profile", requireAuth, async (req, res, next) => {
     res.json({
       user: { userCode: req.user.user_code, email: req.user.email },
       profile: result.rows[0]?.data || {},
-      documentCatalog: [],
+      documentCatalog: companyDocumentCatalog(result.rows[0]?.data),
       onboarding: await onboardingFor(req.user)
     });
   } catch (error) {
@@ -309,7 +426,7 @@ app.put("/auth/company-profile", requireAuth, async (req, res, next) => {
     res.json({
       user: { userCode: req.user.user_code, email: req.user.email },
       profile,
-      documentCatalog: [],
+      documentCatalog: companyDocumentCatalog(profile),
       onboarding: await onboardingFor(req.user)
     });
   } catch (error) {
@@ -418,6 +535,7 @@ app.use(
   "/service-store/certificate-of-origin",
   createCertificateOfOriginRouter({ requireAuth })
 );
+app.use("/service-store/licensing", createLicensingRouter({ requireAuth }));
 app.use("/service-store", createServiceCatalogRouter({ requireAuth }));
 app.use(
   "/service-store/iem-registration",
@@ -511,7 +629,9 @@ app.use((err, _req, res, next) => {
   });
 });
 
-const server = app.listen(port, () => console.log(`CloudDesk API listening at http://localhost:${port}`));
+const server = app.listen(port, "0.0.0.0", () =>
+  console.log(`CloudDesk API listening on 0.0.0.0:${port}`)
+);
 
 async function shutdown() {
   server.close(async () => {

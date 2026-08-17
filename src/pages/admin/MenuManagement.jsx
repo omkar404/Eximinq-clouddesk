@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../services/interceptor";
 
 /* =========================
    BUILD TREE FROM FLAT LIST
@@ -151,30 +151,24 @@ export default function MenuManagement() {
     const [selectedUser, setSelectedUser] = useState("");
     const [menus, setMenus] = useState([]);
 
-    const token = localStorage.getItem("accessToken");
-
     /* LOAD USERS */
     useEffect(() => {
-        axios
-            .get("http://localhost:3000/auth/users", {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+        API
+            .get("/auth/users")
             .then(res => setUsers(res.data));
-    }, [token]);
+    }, []);
 
     /* LOAD MENUS */
     useEffect(() => {
         if (!selectedUser) return;
 
-        axios
-            .get(`http://localhost:3000/auth/menu/by-user/${selectedUser}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+        API
+            .get(`/auth/menu/by-user/${selectedUser}`)
             .then(res => {
                 const tree = buildTree(res.data);
                 setMenus(tree);
             });
-    }, [selectedUser, token]);
+    }, [selectedUser]);
 
     /* TOGGLE */
     const handleToggle = (id) => {
@@ -185,14 +179,11 @@ export default function MenuManagement() {
     const handleSave = async () => {
         const selectedIds = flattenTree(menus);
 
-        await axios.post(
-            "http://localhost:3000/auth/menu/assign-user",
+        await API.post(
+            "/auth/menu/assign-user",
             {
                 userId: selectedUser,
                 menuIds: selectedIds
-            },
-            {
-                headers: { Authorization: `Bearer ${token}` }
             }
         );
 

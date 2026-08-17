@@ -17,6 +17,7 @@ import BisRegistrationWorkflow from "./BisRegistrationWorkflow";
 import DscServicesWorkflow from "./DscServicesWorkflow";
 import EbrcWorkflow from "./EbrcWorkflow";
 import EpcgWorkflow from "./EpcgWorkflow";
+import LicensingServiceWorkflow from "./LicensingServiceWorkflow";
 import IgcrReturnWorkflow from "./IgcrReturnWorkflow";
 import PollutionControlWorkflow from "./PollutionControlWorkflow";
 import CaCertificationWorkflow from "./CaCertificationWorkflow";
@@ -1913,6 +1914,16 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
   if (service.id === "epcg") {
     return <EpcgWorkflow service={service} onBack={onBack} />;
   }
+  if ([
+    "advance-authorisation",
+    "dfia-license",
+    "eop-extension",
+    "scomet-licensing",
+    "customs-license",
+    "fertiliser-import",
+  ].includes(service.id)) {
+    return <LicensingServiceWorkflow service={service} onBack={onBack} />;
+  }
   if (service.id === "igcr-return") {
     return <IgcrReturnWorkflow service={service} onBack={onBack} />;
   }
@@ -1979,10 +1990,19 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
 export default function ServiceStore() {
   const navigate = useNavigate();
   const location = useLocation();
+  const normalizedPath = location.pathname.replace(/\/+$/, "") || "/";
+  const isRetiredLicensingLanding =
+    normalizedPath === "/client/service-store/licensing";
   const [catalog, setCatalog] = useState(null);
   const [catalogError, setCatalogError] = useState("");
   const [expandedCategoryId, setExpandedCategoryId] = useState("compliance");
   const [serviceQuery, setServiceQuery] = useState("");
+
+  useEffect(() => {
+    if (isRetiredLicensingLanding) {
+      navigate("/client/service-store", { replace: true });
+    }
+  }, [isRetiredLicensingLanding, navigate]);
 
   useEffect(() => {
     let active = true;
@@ -2078,6 +2098,10 @@ export default function ServiceStore() {
     navigate(`${category.path}/${service.id}`);
   };
 
+  if (isRetiredLicensingLanding) {
+    return null;
+  }
+
   if (!catalog && !catalogError) {
     return <div className="dashboard-page flex min-h-[420px] items-center justify-center text-sm font-bold text-slate-500">Loading Service Store…</div>;
   }
@@ -2098,7 +2122,7 @@ export default function ServiceStore() {
 
   if (selectedCategoryService) {
     return (
-      <UniversalServiceWorkflow
+      <ComplianceServiceDetailView
         service={selectedCategoryService}
         category={selectedCategory}
         onBack={() => navigate(selectedCategory.path)}

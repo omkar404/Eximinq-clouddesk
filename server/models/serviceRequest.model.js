@@ -216,3 +216,29 @@ export async function submitServiceRequestAndDeduct({
     client.release();
   }
 }
+
+// Some regulated services need a manual quote before any payment is collected.
+// They still follow the same draft-to-submitted lifecycle as paid services.
+export async function submitServiceRequestForQuote({ userId, requestId, serviceSlug, payload, pricingSnapshot }) {
+  const result = await pool.query(
+    `UPDATE service_requests
+     SET status='SUBMITTED', payload=$4, pricing_snapshot=$5, submitted_at=NOW(), updated_at=NOW()
+     WHERE id=$1 AND user_id=$2 AND service_slug=$3 AND status='DRAFT'
+     RETURNING id,request_code,service_slug,status,payload,pricing_snapshot,submitted_at,created_at,updated_at`,
+    [requestId, userId, serviceSlug, payload, pricingSnapshot]
+  );
+  if (!result.rows[0]) {
+    const error = new Error("The service request is no longer editable");
+    error.code = "REQUEST_NOT_EDITABLE";
+    throw error;
+  }
+  const balances = await findFinancialContext(userId);
+  return {
+    request: result.rows[0],
+    balances: {
+      walletBalance: Number(balances.wallet_balance || 0),
+      creditLineBalance: Number(balances.credit_line_balance || 0),
+      creditLimit: Number(balances.credit_limit || 0),
+    },
+  };
+}

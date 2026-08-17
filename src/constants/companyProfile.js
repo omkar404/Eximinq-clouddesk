@@ -27,8 +27,8 @@ export const PORTAL_NAME_OPTIONS = [
 ];
 
 export const CLIENT_COMPANY_DOCUMENT_FIELDS = [
-  { key: "pan", type: "pan", label: "PAN Card Copy", accept: ".pdf" },
-  { key: "iec", type: "iec", label: "IEC Certificate Copy", accept: ".pdf" },
+  { key: "pan", type: "pan", label: "PAN Card Copy", accept: ".pdf,.png,.jpg,.jpeg" },
+  { key: "iec", type: "iec", label: "IEC Certificate Copy", accept: ".pdf,.png,.jpg,.jpeg" },
   {
     key: "incorporation",
     type: "incorporation",
@@ -41,7 +41,7 @@ export const CLIENT_COMPANY_DOCUMENT_FIELDS = [
     label: "Udhyam Certificate Copy",
     accept: ".pdf,.png,.jpg,.jpeg"
   },
-  { key: "rcmc", type: "rcmc", label: "RCMC Document", accept: ".pdf" },
+  { key: "rcmc", type: "rcmc", label: "RCMC Document", accept: ".pdf,.png,.jpg,.jpeg" },
   {
     key: "shopEstablishment",
     type: "shop_establishment",

@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 server/uploads/
 .env
+.env.*
+!.env.example
 server/uploads
 dist
 dist-ssr
