@@ -71,7 +71,9 @@ try {
   await client.query(
     `INSERT INTO users(name,email,password_hash,user_code,role_id)
      VALUES('CloudDesk Administrator',$1,$2,'ADM-0001',$3)
-     ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash, role_id=EXCLUDED.role_id, is_active=TRUE, updated_at=NOW()`,
+     ON CONFLICT(user_code) DO UPDATE SET email=EXCLUDED.email,
+       password_hash=EXCLUDED.password_hash, role_id=EXCLUDED.role_id,
+       is_active=TRUE, updated_at=NOW()`,
     [email, hash, role.rows[0].id]
   );
   if (clientEmail && clientPassword) {
