@@ -286,6 +286,27 @@ async function requireClientProfileOwner(req, res, next) {
   }
 }
 
+async function requireEditableClientProfile(req, res, next) {
+  try {
+    if (req.user.role !== "CLIENT") {
+      return res.status(403).json({ message: "Client access required" });
+    }
+    const result = await pool.query(
+      "SELECT status FROM company_profiles WHERE user_id=$1",
+      [req.user.id]
+    );
+    const status = result.rows[0]?.status;
+    if (status === "SUBMITTED" || status === "APPROVED") {
+      return res.status(409).json({
+        message: "This company profile is read-only after the Quick Form is submitted"
+      });
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 const requireRole = (role) => (req, res, next) => {
   if (req.user.role !== role) return res.status(403).json({ message: `${role} access required` });
   next();
@@ -377,11 +398,9 @@ app.get("/auth/company-profile/documents/file/:token", requireAuth, async (req, 
 app.post(
   "/auth/company-profile/documents/:documentType",
   requireAuth,
+  requireEditableClientProfile,
   companyDocumentUpload.single("file"),
   (req, res) => {
-    if (req.user.role !== "CLIENT") {
-      return res.status(403).json({ message: "Client access required" });
-    }
     res.status(201).json({
       document: {
         token: req.file.filename,
@@ -393,7 +412,7 @@ app.post(
   }
 );
 
-app.delete("/auth/company-profile/documents/:documentType/temp/:token", requireAuth, async (req, res, next) => {
+app.delete("/auth/company-profile/documents/:documentType/temp/:token", requireAuth, requireEditableClientProfile, async (req, res, next) => {
   try {
     const token = String(req.params.token || "");
     if (!token.startsWith(`${req.user.id}__`) || token !== token.split("/").pop()) {
@@ -427,11 +446,8 @@ app.get("/auth/company-profile", requireAuth, async (req, res, next) => {
   }
 });
 
-app.put("/auth/company-profile", requireAuth, async (req, res, next) => {
+app.put("/auth/company-profile", requireAuth, requireEditableClientProfile, async (req, res, next) => {
   try {
-    if (req.user.role !== "CLIENT") {
-      return res.status(403).json({ message: "Client access required" });
-    }
     const profile = normalizeCompanyProfilePayload(req.body);
     await pool.query(
       `INSERT INTO company_profiles(user_id,data,status,updated_at)
