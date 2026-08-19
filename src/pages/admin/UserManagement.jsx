@@ -98,7 +98,7 @@ export default function UserManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post("/auth/register", form);
+      await API.post("/auth/admin/users", form);
 
       toast.fire({
         icon: "success",
@@ -116,6 +116,20 @@ export default function UserManagement() {
         text: err.response?.data?.message || "Something went wrong"
       });
     }
+  };
+
+  const decideRegistration = async (userId, status) => {
+    try {
+      let reason = "";
+      if (status === "REJECTED") {
+        const result = await Swal.fire({ title: "Reject registration", input: "textarea", inputLabel: "Reason (optional)", showCancelButton: true, confirmButtonText: "Reject", confirmButtonColor: "#e11d48" });
+        if (!result.isConfirmed) return;
+        reason = result.value || "";
+      }
+      await API.patch(`/auth/users/${userId}/registration`, { status, reason });
+      await fetchUsers();
+      toast.fire({ icon: "success", title: status === "APPROVED" ? "Registration approved" : "Registration rejected" });
+    } catch (err) { toast.fire({ icon: "error", title: "Update failed", text: err.response?.data?.message || "Please try again" }); }
   };
 
   return (
@@ -283,6 +297,7 @@ export default function UserManagement() {
                 <th className="px-6 py-4">Member</th>
                 <th className="px-6 py-4">Cloudesk ID</th>
                 <th className="px-6 py-4">Access Level</th>
+                <th className="px-6 py-4">Approval</th>
                 <th className="px-6 py-4 text-right">Settings</th>
               </tr>
             </thead>
@@ -321,8 +336,11 @@ export default function UserManagement() {
                         {u.role?.name || u.role}
                       </span>
                     </td>
+                    <td className="px-6 py-5">
+                      <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${u.registration_status === "PENDING" ? "bg-amber-50 text-amber-700" : u.registration_status === "REJECTED" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>{u.registration_status || "APPROVED"}</span>
+                    </td>
                     <td className="px-6 py-5 text-right">
-                      <button
+                      {u.registration_status === "PENDING" ? <div className="flex justify-end gap-2"><button type="button" onClick={() => decideRegistration(u.id, "APPROVED")} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button><button type="button" onClick={() => decideRegistration(u.id, "REJECTED")} className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white">Reject</button></div> : <button
                         type="button"
                         onClick={() => navigate("/account/reset-password")}
                         disabled={!isCurrentUser}
@@ -335,6 +353,7 @@ export default function UserManagement() {
                         <LockKeyhole size={14} />
                         Reset Password
                       </button>
+                      }
                     </td>
                   </tr>
                 );

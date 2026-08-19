@@ -109,7 +109,7 @@ function setRefreshCookie(res, token) {
 
 async function getUser(id) {
   const result = await pool.query(
-    `SELECT u.id,u.name,u.email,u.user_code,u.is_active,r.name AS role
+    `SELECT u.id,u.name,u.email,u.user_code,u.is_active,u.registration_status,r.name AS role
        FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=$1`,
     [id]
   );
@@ -329,9 +329,12 @@ app.post("/auth/login", async (req, res, next) => {
       [email]
     );
     const user = result.rows[0];
-    if (!user?.is_active || !(await bcrypt.compare(String(req.body.password || ""), user.password_hash))) {
+    if (!user || !(await bcrypt.compare(String(req.body.password || ""), user.password_hash))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    if (user.registration_status === "PENDING") return res.status(403).json({ message: "Your registration is pending Admin approval." });
+    if (user.registration_status === "REJECTED") return res.status(403).json({ message: "Your registration was rejected. Please contact the administrator." });
+    if (!user.is_active) return res.status(403).json({ message: "Account is unavailable" });
     const refreshToken = await createRefreshToken(user.id);
     setRefreshCookie(res, refreshToken);
     res.json({
@@ -645,7 +648,7 @@ app.post("/auth/admin/clients/:clientId/company-profile/approve", requireAuth, r
 app.get("/auth/users", requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT u.id,u.name,u.email,u.user_code,u.is_active,u.created_at,r.name AS role_name
+      `SELECT u.id,u.name,u.email,u.user_code,u.is_active,u.registration_status,u.rejection_reason,u.approved_at,u.created_at,r.name AS role_name
          FROM users u JOIN roles r ON r.id=u.role_id ORDER BY u.created_at DESC`
     );
     res.json(result.rows.map((u) => ({ ...u, role: { name: u.role_name } })));
@@ -654,25 +657,52 @@ app.get("/auth/users", requireAuth, requireAdmin, async (_req, res, next) => {
   }
 });
 
-app.post("/auth/register", requireAuth, requireAdmin, async (req, res, next) => {
+app.post("/auth/register", async (req, res, next) => {
   try {
     const { name, email, password, role = "CLIENT" } = req.body;
     if (!name || !email || !password || password.length < 8) {
       return res.status(400).json({ message: "Name, email, and an 8-character password are required" });
     }
-    const roleResult = await pool.query("SELECT id FROM roles WHERE name=$1", [String(role).toUpperCase()]);
+    const normalizedRole = String(role).toUpperCase();
+    if (!["CLIENT", "AGENT"].includes(normalizedRole)) return res.status(400).json({ message: "Only Client or Agent registration is allowed" });
+    const roleResult = await pool.query("SELECT id FROM roles WHERE name=$1", [normalizedRole]);
     if (!roleResult.rows[0]) return res.status(400).json({ message: "Unknown role" });
     const code = `${String(role).toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-6)}`;
     const result = await pool.query(
-      `INSERT INTO users(name,email,password_hash,user_code,role_id) VALUES($1,LOWER($2),$3,$4,$5)
-       RETURNING id,name,email,user_code,is_active,created_at`,
+      `INSERT INTO users(name,email,password_hash,user_code,role_id,is_active,registration_status) VALUES($1,LOWER($2),$3,$4,$5,FALSE,'PENDING')
+       RETURNING id,name,email,user_code,is_active,registration_status,created_at`,
       [name, email, await bcrypt.hash(password, 12), code, roleResult.rows[0].id]
     );
-    res.status(201).json({ ...result.rows[0], role: { name: String(role).toUpperCase() } });
+    res.status(201).json({ message: "Registration submitted. You can log in after Admin approval.", ...result.rows[0], role: { name: normalizedRole } });
   } catch (error) {
     if (error.code === "23505") return res.status(409).json({ message: "Email already exists" });
     next(error);
   }
+});
+
+app.post("/auth/admin/users", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { name, email, password, role = "AGENT" } = req.body;
+    if (!name || !email || !password || password.length < 8) return res.status(400).json({ message: "Name, email, and an 8-character password are required" });
+    const normalizedRole = String(role).toUpperCase();
+    const roleResult = await pool.query("SELECT id FROM roles WHERE name=$1", [normalizedRole]);
+    if (!roleResult.rows[0]) return res.status(400).json({ message: "Unknown role" });
+    const code = `${normalizedRole.slice(0,3)}-${Date.now().toString().slice(-6)}`;
+    const result = await pool.query(`INSERT INTO users(name,email,password_hash,user_code,role_id,is_active,registration_status,approved_at) VALUES($1,LOWER($2),$3,$4,$5,TRUE,'APPROVED',NOW()) RETURNING id,name,email,user_code,is_active,registration_status,created_at`, [name,email,await bcrypt.hash(password,12),code,roleResult.rows[0].id]);
+    res.status(201).json({ ...result.rows[0], role: { name: normalizedRole } });
+  } catch (error) { if (error.code === "23505") return res.status(409).json({ message: "Email already exists" }); next(error); }
+});
+
+app.patch("/auth/users/:userId/registration", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const status = String(req.body.status || "").toUpperCase();
+    if (!["APPROVED", "REJECTED"].includes(status)) return res.status(400).json({ message: "Choose APPROVED or REJECTED" });
+    const result = await pool.query(`UPDATE users u SET registration_status=$2::text,is_active=($2::text='APPROVED'),rejection_reason=$3,approved_at=CASE WHEN $2::text='APPROVED' THEN NOW() ELSE NULL END,updated_at=NOW() FROM roles r WHERE u.role_id=r.id AND u.id=$1 AND r.name IN ('CLIENT','AGENT') RETURNING u.id,u.name,u.email,r.name AS role`, [req.params.userId,status,String(req.body.reason||"").trim()||null]);
+    const changed = result.rows[0];
+    if (!changed) return res.status(404).json({ message: "Registration request not found" });
+    await pool.query(`INSERT INTO notifications(user_id,type,title,message) VALUES($1,$2,$3,$4)`, [changed.id,`REGISTRATION_${status}`,status === "APPROVED" ? "Account approved" : "Registration rejected",status === "APPROVED" ? "Your account has been approved. You can now log in to CloudDesk." : (String(req.body.reason||"").trim() || "Your registration was rejected. Please contact the administrator.")]);
+    res.json({ message: status === "APPROVED" ? "Registration approved" : "Registration rejected", user: changed, status });
+  } catch (error) { next(error); }
 });
 
 app.use(

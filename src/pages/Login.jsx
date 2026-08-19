@@ -202,6 +202,7 @@ export default function Login() {
           <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
             Protected by encrypted authentication and role-based access controls.
           </p>
+          <p className="mt-3 text-center text-sm text-slate-500">New Client or Agent? <Link to="/register" className="font-bold text-[#3157ff]">Register</Link></p>
         </form>
       </section>
     </main>

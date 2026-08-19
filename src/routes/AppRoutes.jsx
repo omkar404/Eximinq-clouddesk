@@ -4,6 +4,7 @@ import { useAuth } from "../context/useAuth";
 import Layout from "../components/layout/Layout";
 import ForgotPassword from "../pages/ForgotPassword";
 import Login from "../pages/Login";
+import Register from "../pages/Register";
 import AccountResetPassword from "../pages/AccountResetPassword";
 import CompanyProfile from "../pages/CompanyProfile";
 import ResetPassword from "../pages/ResetPassword";
@@ -45,6 +46,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
