@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, 
 import { loginUser } from "../services/authService";
 import logisticsPort from "../assets/logistics-port.jpg";
 import { useAuth } from "../context/useAuth";
+import Swal from "sweetalert2";
 
 export default function Login() {
   const { login, user, menus, onboarding } = useAuth();
@@ -44,6 +45,10 @@ export default function Login() {
       const response = await loginUser(form);
 
       login(response);
+
+      if (response.approvalMessage) {
+        await Swal.fire({ icon: "success", title: "Account approved", text: response.approvalMessage, confirmButtonColor: "#101eb9" });
+      }
 
       if (response.user?.role === "CLIENT" && response.onboarding?.dashboardLocked) {
         navigate(response.onboarding.actionPath || "/client/company-profile-setup", {

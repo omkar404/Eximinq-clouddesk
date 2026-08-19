@@ -337,11 +337,18 @@ app.post("/auth/login", async (req, res, next) => {
     if (!user.is_active) return res.status(403).json({ message: "Account is unavailable" });
     const refreshToken = await createRefreshToken(user.id);
     setRefreshCookie(res, refreshToken);
+    const approvalNotice = await pool.query(
+      `UPDATE notifications SET is_read=TRUE
+        WHERE id=(SELECT id FROM notifications WHERE user_id=$1 AND type='REGISTRATION_APPROVED' AND is_read=FALSE ORDER BY created_at DESC LIMIT 1)
+        RETURNING message`,
+      [user.id]
+    );
     res.json({
       accessToken: signAccessToken(user),
       user: publicUser(user),
       menus: await getMenus(user),
-      onboarding: await onboardingFor(user)
+      onboarding: await onboardingFor(user),
+      approvalMessage: approvalNotice.rows[0]?.message || null
     });
   } catch (error) {
     next(error);
