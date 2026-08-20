@@ -9,7 +9,9 @@ import {
   LoaderCircle,
   Pencil,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import ClientCompanyProfile from "../client/ClientCompanyProfile";
 import {
@@ -20,6 +22,13 @@ import {
 
 function hasProfile(client) {
   return Boolean(client.companyProfile);
+}
+
+function documentLabel(document) {
+  return document.label || String(document.key || "Company document")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function SummaryCard({ title, value }) {
@@ -38,6 +47,7 @@ export default function AdminCompanyProfiles() {
   const [activeDownloadKey, setActiveDownloadKey] = useState("");
   const [approvingClientId, setApprovingClientId] = useState("");
   const [managedClient, setManagedClient] = useState(null);
+  const [expandedClientId, setExpandedClientId] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -160,14 +170,14 @@ export default function AdminCompanyProfiles() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-[32px] border border-slate-100 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#eef4ff_100%)] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+    <div className="company-profiles-page space-y-4">
+      <div className="rounded-[24px] border border-slate-100 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#eef4ff_100%)] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-600">
               Admin Company Profiles
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
               Review client-submitted profile sections and documents
             </h1>
             <p className="mt-3 max-w-3xl text-sm text-slate-500">
@@ -190,21 +200,22 @@ export default function AdminCompanyProfiles() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3">
         {filteredClients.map((client) => {
           const profile = client.companyProfile;
           const documents = profile?.documentCatalog || [];
           const approvalStatus = profile?.workflowState?.approvalStatus || "draft";
           const isApproved = approvalStatus === "approved";
+          const isExpanded = expandedClientId === client.id;
 
           return (
             <section
               key={client.id}
-              className="overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+              className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgb(15,23,42,0.04)]"
             >
-              <div className="border-b border-slate-100 px-8 py-6">
+              <div className={`${isExpanded ? "border-b" : ""} border-slate-100 px-5 py-4 md:px-6`}>
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
                       <Building2 size={14} />
                       {client.user_code || client.id}
@@ -222,7 +233,7 @@ export default function AdminCompanyProfiles() {
                       {approvalStatus}
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                      <h2 className="text-xl font-bold tracking-tight text-slate-900">
                         {profile.companyDisplayName || client.name}
                       </h2>
                       <p className="mt-1 text-sm text-slate-500">{client.email}</p>
@@ -238,11 +249,12 @@ export default function AdminCompanyProfiles() {
                     />
                   </div>
                 </div>
-                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <button type="button" onClick={() => setExpandedClientId(isExpanded ? null : client.id)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">{isExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>} {isExpanded ? "Hide details" : "View details"}</button>
                   <button
                     type="button"
                     onClick={() => setManagedClient(client)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-bold text-blue-700"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700"
                   >
                     <Pencil size={16} />
                     Manage Full Profile
@@ -251,7 +263,7 @@ export default function AdminCompanyProfiles() {
                     type="button"
                     onClick={() => handleApprove(client.id)}
                     disabled={isApproved || approvingClientId === client.id}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#101eb9] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#101eb9] px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {approvingClientId === client.id ? (
                       <LoaderCircle className="animate-spin" size={16} />
@@ -263,14 +275,14 @@ export default function AdminCompanyProfiles() {
                 </div>
               </div>
 
-              <div className="grid gap-6 px-8 py-8 xl:grid-cols-[1.1fr,0.9fr]">
+              {isExpanded ? <div className="grid gap-4 px-5 py-5 xl:grid-cols-[1fr,1fr] md:px-6">
                 <div className="space-y-6">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
                       <ShieldCheck size={16} />
                       Submitted Profile Snapshot
                     </div>
-                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
                       <SummaryCard title="Concern Nature" value={profile.concern_nature} />
                       <SummaryCard
                         title="Exporter / Importer Category"
@@ -290,11 +302,11 @@ export default function AdminCompanyProfiles() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
                       Section Status
                     </p>
-                    <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {(profile.sections || []).map((section) => (
                         <div
                           key={section.key}
@@ -319,7 +331,7 @@ export default function AdminCompanyProfiles() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
                     <Download size={16} />
                     Uploaded Company Profile Documents
@@ -332,10 +344,10 @@ export default function AdminCompanyProfiles() {
                     documents.map((document) => (
                       <div
                         key={document.key}
-                        className="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div>
-                          <p className="text-sm font-bold text-slate-900">{document.label}</p>
+                          <p className="text-sm font-bold text-slate-900">{documentLabel(document)}</p>
                           <p className="mt-1 text-xs text-slate-500">
                             {document.ownerLabel || "Company level document"}
                           </p>
@@ -343,7 +355,7 @@ export default function AdminCompanyProfiles() {
                         <button
                           type="button"
                           onClick={() => handleDownload(document)}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-[#101eb9] px-4 py-2.5 text-sm font-bold text-white"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#101eb9] px-3 py-2 text-xs font-bold text-white"
                         >
                           {activeDownloadKey === document.key ? (
                             <LoaderCircle className="animate-spin" size={16} />
@@ -356,7 +368,7 @@ export default function AdminCompanyProfiles() {
                     ))
                   )}
                 </div>
-              </div>
+              </div> : null}
             </section>
           );
         })}

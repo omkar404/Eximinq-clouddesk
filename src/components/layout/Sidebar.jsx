@@ -24,6 +24,7 @@ import {
   Wallet
 } from "lucide-react";
 import Swal from "sweetalert2";
+import BrandLogo from "../BrandLogo";
 
 const QUICK_FORM_MENU = {
   id: "quick-form-menu",
@@ -495,20 +496,8 @@ export default function Sidebar({ isCollapsed = false, isMobileOpen = false, onT
       </button>
 
       <div className={`px-4 pb-3 pt-3 ${isCollapsed ? "px-2" : ""}`}>
-        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#5b7cff] to-[#3157ff] text-sm font-black text-white shadow-[0_10px_24px_rgba(49,87,255,.35)]">
-            E
-          </div>
-          {!isCollapsed ? (
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold text-white">
-                Cloud Desk
-              </h1>
-              <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
-                Eximinq Workspace
-              </p>
-            </div>
-          ) : null}
+        <div className={`flex items-center ${isCollapsed ? "justify-center" : ""}`}>
+          {isCollapsed ? <BrandLogo compact className="rounded-xl bg-white p-1" /> : <div className="w-[176px] rounded-xl bg-white/95 px-2.5 py-2 shadow-lg"><BrandLogo /></div>}
         </div>
       </div>
 

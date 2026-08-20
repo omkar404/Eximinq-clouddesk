@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Eye, EyeOff, UserPlus } from "lucide-react";
 import { registerUser } from "../services/authService";
+import BrandLogo from "../components/BrandLogo";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "CLIENT" });
@@ -18,6 +19,7 @@ export default function Register() {
   };
   return <main className="flex min-h-screen items-center justify-center bg-[#f4f7fb] p-5">
     <form onSubmit={submit} className="w-full max-w-lg rounded-[32px] border bg-white p-8 shadow-xl">
+      <BrandLogo className="mb-6 w-52" />
       <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><UserPlus /></div>
       <p className="premium-kicker">CloudDesk registration</p><h1 className="mt-2 text-3xl font-black">Create your account</h1>
       <p className="mt-2 text-sm text-slate-500">Client and Agent registrations require Admin approval before login.</p>

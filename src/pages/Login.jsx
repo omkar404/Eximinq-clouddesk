@@ -5,6 +5,7 @@ import { loginUser } from "../services/authService";
 import logisticsPort from "../assets/logistics-port.jpg";
 import { useAuth } from "../context/useAuth";
 import Swal from "sweetalert2";
+import BrandLogo from "../components/BrandLogo";
 
 export default function Login() {
   const { login, user, menus, onboarding } = useAuth();
@@ -85,13 +86,7 @@ export default function Login() {
         <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,#6ee7b7_0,transparent_22%),radial-gradient(circle_at_80%_75%,#60a5fa_0,transparent_25%)]" />
 
         <div className="relative z-10 flex h-full flex-col justify-between px-10 py-10 text-white xl:px-16 xl:py-14">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6b86ff] to-[#3157ff] text-lg font-black shadow-2xl">E</div>
-            <div>
-              <p className="text-base font-extrabold tracking-[-0.02em]">EXIMINQ</p>
-              <p className="text-[10px] font-bold uppercase tracking-[.22em] text-blue-200">CloudDesk</p>
-            </div>
-          </div>
+          <div className="w-[230px] rounded-2xl bg-white/95 px-4 py-2.5 shadow-xl"><BrandLogo /></div>
 
           <div className="max-w-xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-bold text-blue-100 backdrop-blur-xl">
@@ -124,8 +119,7 @@ export default function Login() {
 
       <section className="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
         <div className="absolute left-5 top-5 flex items-center gap-2 lg:hidden">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3157ff] text-sm font-black text-white">E</div>
-          <span className="font-extrabold text-slate-950">EXIMINQ CloudDesk</span>
+          <BrandLogo className="w-40" />
         </div>
         <form
           onSubmit={handleLogin}
