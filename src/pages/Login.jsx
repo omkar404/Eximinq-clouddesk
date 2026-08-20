@@ -86,7 +86,7 @@ export default function Login() {
         <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,#6ee7b7_0,transparent_22%),radial-gradient(circle_at_80%_75%,#60a5fa_0,transparent_25%)]" />
 
         <div className="relative z-10 flex h-full flex-col justify-between px-10 py-10 text-white xl:px-16 xl:py-14">
-          <div className="w-[230px] rounded-2xl bg-white/95 px-4 py-2.5 shadow-xl"><BrandLogo /></div>
+          <div className="w-[250px] opacity-95 drop-shadow-[0_10px_24px_rgba(0,0,0,.35)]"><BrandLogo inverse /></div>
 
           <div className="max-w-xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-bold text-blue-100 backdrop-blur-xl">

@@ -497,7 +497,7 @@ export default function Sidebar({ isCollapsed = false, isMobileOpen = false, onT
 
       <div className={`px-4 pb-3 pt-3 ${isCollapsed ? "px-2" : ""}`}>
         <div className={`flex items-center ${isCollapsed ? "justify-center" : ""}`}>
-          {isCollapsed ? <BrandLogo compact className="rounded-xl bg-white p-1" /> : <div className="w-[176px] rounded-xl bg-white/95 px-2.5 py-2 shadow-lg"><BrandLogo /></div>}
+          {isCollapsed ? <BrandLogo compact inverse className="drop-shadow-[0_6px_14px_rgba(0,0,0,.35)]" /> : <div className="w-[184px] opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,.4)]"><BrandLogo inverse /></div>}
         </div>
       </div>
 

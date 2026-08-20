@@ -331,7 +331,7 @@ export default function AdminCompanyProfiles() {
                   </div>
                 </div>
 
-                <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
                     <Download size={16} />
                     Uploaded Company Profile Documents
@@ -341,10 +341,10 @@ export default function AdminCompanyProfiles() {
                       This client has not uploaded company profile documents yet.
                     </div>
                   ) : (
-                    documents.map((document) => (
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{documents.map((document) => (
                       <div
                         key={document.key}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        className="flex min-h-[88px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div>
                           <p className="text-sm font-bold text-slate-900">{documentLabel(document)}</p>
@@ -365,7 +365,7 @@ export default function AdminCompanyProfiles() {
                           Download
                         </button>
                       </div>
-                    ))
+                    ))}</div>
                   )}
                 </div>
               </div> : null}
