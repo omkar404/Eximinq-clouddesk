@@ -399,7 +399,7 @@ function ensureSetupRouteDefaults(profile) {
   };
 }
 
-function getSetupRouteValidationMessage(form) {
+function getSetupRouteValidationMessage(form, pendingDocuments = {}) {
   if (
     !form.companyName.trim() ||
     !form.concernNature.trim() ||
@@ -410,6 +410,30 @@ function getSetupRouteValidationMessage(form) {
     return "Complete the company details section before submitting.";
   }
 
+  if (!/^\d{10}$/.test(form.firmMobileNo.trim())) {
+    return "Enter a valid 10-digit firm mobile number.";
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.firmEmail.trim())) {
+    return "Enter a valid correspondence email address.";
+  }
+
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.panNumber.trim())) {
+    return "Enter a valid 10-character PAN number in the Documents & IDs section.";
+  }
+
+  if (!/^[A-Z0-9]{10}$/.test(form.iecNumber.trim())) {
+    return "Enter a valid 10-character IEC number in the Documents & IDs section.";
+  }
+
+  if (!form.panDocumentPath && !pendingDocuments.pan?.token) {
+    return "Upload the PAN Card Copy before submitting.";
+  }
+
+  if (!form.iecDocumentPath && !pendingDocuments.iec?.token) {
+    return "Upload the IEC Certificate Copy before submitting.";
+  }
+
   const hasCompleteKeyPerson = form.keyPeople.some(
     person =>
       person.directorName.trim() &&
@@ -418,6 +442,27 @@ function getSetupRouteValidationMessage(form) {
 
   if (!hasCompleteKeyPerson) {
     return "Add at least one key person with name and designation.";
+  }
+
+  const invalidKeyPerson = form.keyPeople.find(person =>
+    person.directorName.trim() && (
+      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(person.panCardNo.trim()) ||
+      !/^\d{12}$/.test(person.aadharCardNo.trim())
+    )
+  );
+
+  if (invalidKeyPerson) {
+    return "Enter a valid PAN and 12-digit Aadhaar number for every added key person.";
+  }
+
+  const firstKeyPerson = form.keyPeople.find(person => person.directorName.trim());
+  const firstKeyPersonIndex = form.keyPeople.indexOf(firstKeyPerson);
+  if (
+    firstKeyPerson &&
+    ((!firstKeyPerson.panDocumentPath && !pendingDocuments[`key_person_pan_${firstKeyPersonIndex}`]?.token) ||
+      (!firstKeyPerson.aadharDocumentPath && !pendingDocuments[`key_person_aadhar_${firstKeyPersonIndex}`]?.token))
+  ) {
+    return "Upload both PAN and Aadhaar copies for the primary key person.";
   }
 
   const mandatoryPortals = [form.portalCredentials[0], form.portalCredentials[1]];
@@ -480,6 +525,12 @@ function getStepValidationMessage(form, stepKey) {
     if (!form.gstinDetails.some(item => item.gstin.trim())) {
       return "Add at least one GSTIN in the Company Profile step before continuing.";
     }
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.panNumber.trim())) return "Enter a valid PAN number (for example ABCDE1234F).";
+    if (!/^[A-Z0-9]{10}$/.test(form.iecNumber.trim())) return "Enter a valid 10-character IEC number.";
+    if (!/^\d{10}$/.test(form.firmMobileNo.trim())) return "Enter a valid 10-digit firm mobile number.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.firmEmail.trim())) return "Enter a valid firm email address.";
+    const invalidGstin = form.gstinDetails.find(item => item.gstin.trim() && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(item.gstin.trim()));
+    if (invalidGstin) return "Enter every GSTIN in the valid 15-character format.";
   }
 
   if (stepKey === "branch-details") {
@@ -512,6 +563,12 @@ function getStepValidationMessage(form, stepKey) {
     if (!hasKeyPerson) {
       return "Complete at least one key person record with name, mobile number, PAN number, and Aadhaar number before continuing.";
     }
+    const invalidPerson = form.keyPeople.find(item => item.directorName.trim() && (
+      !/^\d{10}$/.test(item.mobileNumber.trim()) ||
+      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(item.panCardNo.trim()) ||
+      !/^\d{12}$/.test(item.aadharCardNo.trim())
+    ));
+    if (invalidPerson) return "Enter a valid 10-digit mobile, PAN, and 12-digit Aadhaar number for every key person.";
   }
 
   if (stepKey === "authorised-signatory-details") {
@@ -525,6 +582,24 @@ function getStepValidationMessage(form, stepKey) {
     if (!hasSignatory) {
       return "Complete at least one authorised signatory record with mobile number, PAN number, and Aadhaar number before continuing.";
     }
+    const invalidSignatory = form.authorisedSignatories.find(item => item.panName.trim() && (
+      !/^\d{10}$/.test(item.mobileNumber.trim()) ||
+      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(item.panCardNo.trim()) ||
+      !/^\d{12}$/.test(item.aadharCardNo.trim())
+    ));
+    if (invalidSignatory) return "Enter a valid 10-digit mobile, PAN, and 12-digit Aadhaar number for every authorised signatory.";
+  }
+
+  if (stepKey === "portal-credentials") {
+    const hasCompletePortal = form.portalCredentials.some(item =>
+      item.portalName?.trim() && item.userId?.trim() && item.password?.trim()
+    );
+    if (!hasCompletePortal) return "Add at least one complete portal credential before saving the profile.";
+    const incompletePortal = form.portalCredentials.find(item =>
+      [item.portalName, item.userId, item.password].some(value => value?.trim()) &&
+      (!item.portalName?.trim() || !item.userId?.trim() || !item.password?.trim())
+    );
+    if (incompletePortal) return "Complete the portal name, user ID, and password for every portal row, or remove the incomplete row.";
   }
 
   return "";
@@ -543,7 +618,8 @@ function DocumentField({
   uploading,
   onRemove,
   onViewSavedFile,
-  readOnly = false
+  readOnly = false,
+  required = false
 }) {
   const { readOnly: contextReadOnly } = useContext(FormInteractivityContext);
   const isReadOnly = readOnly || contextReadOnly;
@@ -555,12 +631,15 @@ function DocumentField({
 
   return (
     <div className="rounded-[28px] border border-slate-200 bg-slate-50/90 p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+        {label}{required ? <span className="ml-1 text-rose-600" aria-hidden="true">*</span> : null}
+      </p>
       <p className="mt-2 text-sm leading-6 text-slate-500">{helper}</p>
       <input
         type="file"
         accept={accept}
         aria-label={label}
+        aria-required={required}
         disabled={uploading || isReadOnly}
         onChange={async event => {
           const file = event.target.files?.[0];
@@ -578,7 +657,7 @@ function DocumentField({
             ? `Uploaded: ${pendingFile.fileName}`
             : value
               ? "Saved file available."
-              : `Placeholder: upload ${label.toLowerCase()}.`}
+              : "No file selected. Accepted formats: PDF, PNG, JPG, JPEG."}
       </p>
       {previewUrl ? (
         <div className="mt-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
@@ -652,7 +731,11 @@ function Field({
   type = "text",
   className = "",
   readOnly = false,
-  infoText = ""
+  infoText = "",
+  required = false,
+  maxLength,
+  inputMode,
+  error = ""
 }) {
   const { readOnly: contextReadOnly } = useContext(FormInteractivityContext);
   const isReadOnly = readOnly || contextReadOnly;
@@ -660,7 +743,7 @@ function Field({
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-        <span>{label}</span>
+        <span>{label}{required ? <span className="ml-1 text-rose-600" aria-hidden="true">*</span> : null}</span>
         {isReadOnly && infoText ? (
           <span
             className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold normal-case tracking-normal text-blue-700"
@@ -678,12 +761,18 @@ function Field({
         onChange={onChange}
         readOnly={isReadOnly}
         title={isReadOnly && infoText ? infoText : undefined}
+        required={required}
+        aria-required={required}
+        aria-invalid={Boolean(error)}
+        maxLength={maxLength}
+        inputMode={inputMode}
         className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
           isReadOnly
             ? "border-slate-200 bg-slate-100 text-slate-500"
             : "border-slate-200 bg-white text-slate-700 focus:border-[#101eb9] focus:shadow-[0_0_0_4px_rgba(16,30,185,0.08)]"
         }`}
       />
+      {error ? <p className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p> : null}
       {isReadOnly && infoText ? (
         <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-slate-500">
           <Info size={14} className="mt-0.5 shrink-0 text-blue-600" />
@@ -701,7 +790,8 @@ function SelectField({
   onChange,
   options,
   className = "",
-  disabled = false
+  disabled = false,
+  required = false
 }) {
   const { readOnly: contextReadOnly } = useContext(FormInteractivityContext);
   const isDisabled = disabled || contextReadOnly;
@@ -709,12 +799,14 @@ function SelectField({
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-        {label}
+        {label}{required ? <span className="ml-1 text-rose-600" aria-hidden="true">*</span> : null}
       </span>
       <select
         value={value}
         onChange={onChange}
         disabled={isDisabled}
+        required={required}
+        aria-required={required}
         className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
           isDisabled
             ? "border-slate-200 bg-slate-100 text-slate-500"
@@ -738,7 +830,8 @@ function TextareaField({
   value,
   onChange,
   className = "",
-  readOnly = false
+  readOnly = false,
+  required = false
 }) {
   const { readOnly: contextReadOnly } = useContext(FormInteractivityContext);
   const isReadOnly = readOnly || contextReadOnly;
@@ -746,7 +839,7 @@ function TextareaField({
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-        {label}
+        {label}{required ? <span className="ml-1 text-rose-600" aria-hidden="true">*</span> : null}
       </span>
       <textarea
         rows={4}
@@ -754,6 +847,8 @@ function TextareaField({
         value={value}
         onChange={onChange}
         readOnly={isReadOnly}
+        required={required}
+        aria-required={required}
         className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
           isReadOnly
             ? "border-slate-200 bg-slate-100 text-slate-500"
@@ -1216,12 +1311,20 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
     }
 
     if (isSetupRoute) {
-      const validationMessage = getSetupRouteValidationMessage(form);
+      const validationMessage = getSetupRouteValidationMessage(form, pendingDocuments);
 
       if (validationMessage) {
+        const sectionIndex = /company|firm mobile|email/i.test(validationMessage)
+          ? 0
+          : /PAN Card Copy|IEC|Documents|PAN number/i.test(validationMessage)
+            ? 1
+            : /key person|Aadhaar/i.test(validationMessage)
+              ? 2
+              : 3;
+        setQuickFormSectionIndex(sectionIndex);
         Swal.fire({
-          icon: "info",
-          title: "Complete the required setup fields",
+          icon: "error",
+          title: "Please complete mandatory fields",
           text: validationMessage,
           confirmButtonColor: "#101eb9"
         });
@@ -1478,6 +1581,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                     placeholder="Enter the firm name"
                     value={form.companyName}
                     onChange={event => updateField("companyName", event.target.value)}
+                    required
                   />
                   <SelectField
                     label="Nature of Concern / Firm"
@@ -1485,18 +1589,24 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                     value={form.concernNature}
                     onChange={event => updateField("concernNature", event.target.value)}
                     options={COMPANY_TYPE_OPTIONS}
+                    required
                   />
                   <Field
                     label="Firm Mobile No"
                     placeholder="Enter the firm mobile number"
                     value={form.firmMobileNo}
-                    onChange={event => updateField("firmMobileNo", event.target.value)}
+                    onChange={event => updateField("firmMobileNo", event.target.value.replace(/\D/g, "").slice(0, 10))}
+                    inputMode="numeric"
+                    maxLength={10}
+                    required
                   />
                   <Field
                     label="Firm Email ID"
                     placeholder="Enter the correspondence email"
                     value={form.firmEmail}
                     onChange={event => updateField("firmEmail", event.target.value)}
+                    type="email"
+                    required
                   />
                   <SelectField
                     label="Category of Exporters / Importers"
@@ -1505,6 +1615,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                     onChange={event => updateField("exporterImporterCategory", event.target.value)}
                     options={EXPORTER_CATEGORY_OPTIONS}
                     className="md:col-span-2"
+                    required
                   />
                 </div>
 
@@ -1528,6 +1639,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                     onRemove={handlePendingDocumentRemove}
                     onViewSavedFile={viewSavedDocument}
                     readOnly={!isEditable}
+                    required
                   />
                   <DocumentField
                     label="Attachment - IEC Certificate Copy"
@@ -1543,6 +1655,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                     onRemove={handlePendingDocumentRemove}
                     onViewSavedFile={viewSavedDocument}
                     readOnly={!isEditable}
+                    required
                   />
                   <DocumentField
                     label="Attachment - GST Certificate Copy"
@@ -1642,12 +1755,16 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       placeholder="Enter PAN number"
                       value={form.panNumber}
                       onChange={event => updateField("panNumber", event.target.value.toUpperCase())}
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="IEC Certificate Number"
                       placeholder="Enter IEC number"
                       value={form.iecNumber}
                       onChange={event => updateField("iecNumber", event.target.value.toUpperCase())}
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="GST Certificate Number"
@@ -1724,6 +1841,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("keyPeople", index, "directorName", event.target.value)
                         }
+                        required
                       />
                       <Field
                         label="Designation"
@@ -1732,6 +1850,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("keyPeople", index, "designation", event.target.value)
                         }
+                        required
                       />
                       <Field
                         label="PAN Card Number"
@@ -1740,6 +1859,8 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("keyPeople", index, "panCardNo", event.target.value.toUpperCase())
                         }
+                        maxLength={10}
+                        required
                       />
                       <Field
                         label="Aadhaar Card Number"
@@ -1748,6 +1869,9 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("keyPeople", index, "aadharCardNo", event.target.value.replace(/\D/g, "").slice(0, 12))
                         }
+                        inputMode="numeric"
+                        maxLength={12}
+                        required
                       />
                     </div>
 
@@ -1766,6 +1890,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onRemove={handlePendingDocumentRemove}
                         onViewSavedFile={viewSavedDocument}
                         readOnly={!isEditable}
+                        required={index === 0}
                       />
                       <DocumentField
                         label="Attachment - Aadhaar Card Copy"
@@ -1781,6 +1906,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onRemove={handlePendingDocumentRemove}
                         onViewSavedFile={viewSavedDocument}
                         readOnly={!isEditable}
+                        required={index === 0}
                       />
                     </div>
                   </div>
@@ -1812,6 +1938,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                           updateListItem("portalCredentials", index, "portalName", event.target.value)
                         }
                         className="flex-1"
+                        required
                       />
                       <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-rose-600">
                         Mandatory
@@ -1825,6 +1952,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("portalCredentials", index, "userId", event.target.value)
                         }
+                        required
                       />
                       <Field
                         label="Password"
@@ -1833,6 +1961,8 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         onChange={event =>
                           updateListItem("portalCredentials", index, "password", event.target.value)
                         }
+                        type="password"
+                        required
                       />
                     </div>
                   </div>
@@ -2115,6 +2245,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       placeholder="Enter the legal company or firm name"
                       value={form.companyName}
                       onChange={event => updateField("companyName", event.target.value)}
+                      required
                     />
                     <SelectField
                       label="Nature of Concern"
@@ -2122,6 +2253,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       value={form.concernNature}
                       onChange={event => updateField("concernNature", event.target.value)}
                       options={COMPANY_TYPE_OPTIONS}
+                      required
                     />
                     <SelectField
                       label="Exporter / Importer Category"
@@ -2131,18 +2263,23 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                         updateField("exporterImporterCategory", event.target.value)
                       }
                       options={EXPORTER_CATEGORY_OPTIONS}
+                      required
                     />
                     <Field
                       label="PAN Number"
                       placeholder="Enter PAN number"
                       value={form.panNumber}
                       onChange={event => updateField("panNumber", event.target.value.toUpperCase())}
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="IEC Number"
                       placeholder="Enter IEC number"
                       value={form.iecNumber}
                       onChange={event => updateField("iecNumber", event.target.value.toUpperCase())}
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="Udhyam Certificate Number"
@@ -2154,7 +2291,10 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       label="Firm Mobile Number"
                       placeholder="Enter the mobile number"
                       value={form.firmMobileNo}
-                      onChange={event => updateField("firmMobileNo", event.target.value)}
+                      onChange={event => updateField("firmMobileNo", event.target.value.replace(/\D/g, "").slice(0, 10))}
+                      inputMode="numeric"
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="Firm Email"
@@ -2163,6 +2303,8 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       onChange={event =>
                         updateField("firmEmail", event.target.value)
                       }
+                      type="email"
+                      required
                     />
                     <SelectField
                       label="Udhyam Status"
@@ -2184,6 +2326,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       value={form.headOfficeAddress}
                       onChange={event => updateField("headOfficeAddress", event.target.value)}
                       className="md:col-span-2 xl:col-span-3"
+                      required
                     />
                   </div>
                 ) : null}
@@ -2656,6 +2799,7 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       onChange={event =>
                         updateListItem("keyPeople", index, "directorName", event.target.value)
                       }
+                      required
                     />
                     <Field
                       label="Designation"
@@ -2669,21 +2813,27 @@ export default function ClientCompanyProfile({ adminClientId = "" }) {
                       label="Mobile Number"
                       placeholder="Enter the mobile number"
                       value={person.mobileNumber}
-                      onChange={event =>
-                        updateListItem("keyPeople", index, "mobileNumber", event.target.value)
-                      }
+                      onChange={event => updateListItem("keyPeople", index, "mobileNumber", event.target.value.replace(/\D/g, "").slice(0, 10))}
+                      inputMode="numeric"
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="PAN Card Number"
                       placeholder="Enter PAN number"
                       value={person.panCardNo}
                       onChange={event => updateListItem("keyPeople", index, "panCardNo", event.target.value.toUpperCase())}
+                      maxLength={10}
+                      required
                     />
                     <Field
                       label="Aadhaar Card Number"
                       placeholder="Enter Aadhaar number"
                       value={person.aadharCardNo}
                       onChange={event => updateListItem("keyPeople", index, "aadharCardNo", event.target.value.replace(/\D/g, "").slice(0, 12))}
+                      inputMode="numeric"
+                      maxLength={12}
+                      required
                     />
                     <Field
                       label="DIN"
