@@ -34,3 +34,18 @@ export const removeLicensingDocument = async (slug, requestId, documentKey) =>
       `${servicePath(slug)}/drafts/${requestId}/documents/${documentKey}`,
     )
   ).data;
+
+export async function downloadLicensingDocument(slug, requestId, documentKey, fileName) {
+  const response = await API.get(
+    `${servicePath(slug)}/requests/${requestId}/documents/${documentKey}/download`,
+    { responseType: "blob" },
+  );
+  const url = window.URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName || "licensing-document";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}

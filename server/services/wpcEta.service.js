@@ -1,6 +1,7 @@
 import {
   createServiceRequest,
   deleteServiceDocument,
+  findClientServiceIdentity,
   findFinancialContext,
   findServiceDefinition,
   findServiceDocument,
@@ -50,9 +51,10 @@ function calculatePricing(config, requestMode) {
 }
 
 export async function getWpcEtaConfiguration(userId) {
-  const [definition, finances] = await Promise.all([
+  const [definition, finances, identity] = await Promise.all([
     getDefinition(),
     findFinancialContext(userId),
+    findClientServiceIdentity(userId),
   ]);
   return {
     service: {
@@ -66,6 +68,11 @@ export async function getWpcEtaConfiguration(userId) {
       walletBalance: Number(finances.wallet_balance || 0),
       creditLineBalance: Number(finances.credit_line_balance || 0),
       creditLimit: Number(finances.credit_limit || 0),
+    },
+    entity: {
+      companyName: identity.company_name || "",
+      iecNumber: identity.iec_number || "",
+      gstin: identity.gstin || "",
     },
   };
 }

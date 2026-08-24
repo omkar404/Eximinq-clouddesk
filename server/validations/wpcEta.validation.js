@@ -22,9 +22,14 @@ export function validateWpcEtaRequest(body = {}, { requireComplete = false } = {
   if (!MODES.has(value.requestMode)) errors.requestMode = "Select a valid WPC authorization type";
   if (requireComplete) {
     if (!value.modelNumber) errors.modelNumber = "Enter the equipment model number";
+    else if (value.modelNumber.length > 100) errors.modelNumber = "Equipment model number must not exceed 100 characters";
     if (value.requestMode === "eta") {
       if (!value.frequencyRange) errors.frequencyRange = "Enter the operating frequency range";
-      if (!value.outputPower || Number(value.outputPower) <= 0) errors.outputPower = "Enter a valid RF output power";
+      else if (value.frequencyRange.length > 120) errors.frequencyRange = "Frequency range must not exceed 120 characters";
+      const numericPower = Number(value.outputPower);
+      if (!value.outputPower || !Number.isFinite(numericPower) || numericPower <= 0 || numericPower > 1000) {
+        errors.outputPower = "Enter a valid RF output power between 0 and 1000 dBm";
+      }
     }
   }
   return { valid: Object.keys(errors).length === 0, errors, value };

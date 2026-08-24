@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import IemRegistrationWorkflow from "./IemRegistrationWorkflow";
 import IndustrialLicenseWorkflow from "./IndustrialLicenseWorkflow";
@@ -18,6 +18,37 @@ import DscServicesWorkflow from "./DscServicesWorkflow";
 import EbrcWorkflow from "./EbrcWorkflow";
 import EpcgWorkflow from "./EpcgWorkflow";
 import LicensingServiceWorkflow from "./LicensingServiceWorkflow";
+import DfiaWorkflow from "./DfiaWorkflow";
+import ScometWorkflow from "./ScometWorkflow";
+import FertiliserImportWorkflow from "./FertiliserImportWorkflow";
+import ImportManagementWorkflow from "./ImportManagementWorkflow";
+import StarExportHouseWorkflow from "./StarExportHouseWorkflow";
+import IecManagementWorkflow from "./IecManagementWorkflow";
+import IcegateManagementWorkflow from "./IcegateManagementWorkflow";
+import ERcmcWorkflow from "./ERcmcWorkflow";
+import DefenceEximWorkflow from "./DefenceEximWorkflow";
+import HalalCertificationWorkflow from "./HalalCertificationWorkflow";
+import GemRegistrationWorkflow from "./GemRegistrationWorkflow";
+import HorticultureWorkflow from "./HorticultureWorkflow";
+import FreeSaleCertificateWorkflow from "./FreeSaleCertificateWorkflow";
+import ScripTradingWorkflow from "./ScripTradingWorkflow";
+import InterestEqualisationWorkflow from "./InterestEqualisationWorkflow";
+import IgstRefundWorkflow from "./IgstRefundWorkflow";
+import DutyDrawbackWorkflow from "./DutyDrawbackWorkflow";
+import RodtepSchemeWorkflow from "./RodtepSchemeWorkflow";
+import NoDueCertificateWorkflow from "./NoDueCertificateWorkflow";
+import NoIncentiveCertificateWorkflow from "./NoIncentiveCertificateWorkflow";
+import SvbRegistrationWorkflow from "./SvbRegistrationWorkflow";
+import MoowrSchemeWorkflow from "./MoowrSchemeWorkflow";
+import AeoCertificationWorkflow from "./AeoCertificationWorkflow";
+import RmccAlertRemovalWorkflow from "./RmccAlertRemovalWorkflow";
+import CustomsAdjudicationWorkflow from "./CustomsAdjudicationWorkflow";
+import PolicyRelaxationPrcWorkflow from "./PolicyRelaxationPrcWorkflow";
+import IsoCertificationWorkflow from "./IsoCertificationWorkflow";
+import TrademarkRegistrationWorkflow from "./TrademarkRegistrationWorkflow";
+import FactoryStuffingWorkflow from "./FactoryStuffingWorkflow";
+import MarineInsuranceWorkflow from "./MarineInsuranceWorkflow";
+import DpdRegistrationWorkflow from "./DpdRegistrationWorkflow";
 import IgcrReturnWorkflow from "./IgcrReturnWorkflow";
 import PollutionControlWorkflow from "./PollutionControlWorkflow";
 import CaCertificationWorkflow from "./CaCertificationWorkflow";
@@ -1914,13 +1945,103 @@ function ComplianceServiceDetailView({ service, category, onBack }) {
   if (service.id === "epcg") {
     return <EpcgWorkflow service={service} onBack={onBack} />;
   }
+  if (service.id === "dfia-license") {
+    return <DfiaWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "scomet-licensing") {
+    return <ScometWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "fertiliser-import") {
+    return <FertiliserImportWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "import-management") {
+    return <ImportManagementWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "star-export-house") {
+    return <StarExportHouseWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "iec-management") {
+    return <IecManagementWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "icegate-registration") {
+    return <IcegateManagementWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "e-rcmc-issuance") {
+    return <ERcmcWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "defence-exim-license") {
+    return <DefenceEximWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "halal-certification") {
+    return <HalalCertificationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "gem-registration") {
+    return <GemRegistrationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "horticulture") {
+    return <HorticultureWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "free-sale-certificate") {
+    return <FreeSaleCertificateWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "rodtep-rosctl-script-trading") {
+    return <ScripTradingWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "interest-equalisation") {
+    return <InterestEqualisationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "igst-refund") {
+    return <IgstRefundWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "duty-drawback") {
+    return <DutyDrawbackWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "rodtep-scheme") {
+    return <RodtepSchemeWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "no-due-certificate") {
+    return <NoDueCertificateWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "no-incentive-certificate") {
+    return <NoIncentiveCertificateWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "svb-registration") {
+    return <SvbRegistrationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "moowr-scheme") {
+    return <MoowrSchemeWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "aeo-certification") {
+    return <AeoCertificationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "rmcc-alert-removal") {
+    return <RmccAlertRemovalWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "customs-adjudication") {
+    return <CustomsAdjudicationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "policy-relaxation-prc") {
+    return <PolicyRelaxationPrcWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "iso-certification") {
+    return <IsoCertificationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "trademark") {
+    return <TrademarkRegistrationWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "factory-stuffing") {
+    return <FactoryStuffingWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "marine-insurance") {
+    return <MarineInsuranceWorkflow service={service} onBack={onBack} />;
+  }
+  if (service.id === "dpd-registration") {
+    return <DpdRegistrationWorkflow service={service} onBack={onBack} />;
+  }
   if ([
     "advance-authorisation",
-    "dfia-license",
     "eop-extension",
-    "scomet-licensing",
     "customs-license",
-    "fertiliser-import",
   ].includes(service.id)) {
     return <LicensingServiceWorkflow service={service} onBack={onBack} />;
   }
@@ -1997,6 +2118,8 @@ export default function ServiceStore() {
   const [catalogError, setCatalogError] = useState("");
   const [expandedCategoryId, setExpandedCategoryId] = useState("compliance");
   const [serviceQuery, setServiceQuery] = useState("");
+  const requestedCategoryId = new URLSearchParams(location.search).get("category");
+  const activeExpandedCategoryId = requestedCategoryId || expandedCategoryId;
 
   useEffect(() => {
     if (isRetiredLicensingLanding) {
@@ -2072,11 +2195,6 @@ export default function ServiceStore() {
     navigate(`/client/service-store/compliance/${service.id}`);
   };
 
-  const handleCategoryServiceSelect = (service) => {
-    const categoryPath = selectedCategory?.path || "/client/service-store";
-    navigate(`${categoryPath}/${service.id}`);
-  };
-
   const openSelectedComplianceService = () => {
     if (!selectedService) {
       return;
@@ -2085,8 +2203,11 @@ export default function ServiceStore() {
     navigate(`/client/service-store/compliance/${selectedService.id}`);
   };
 
-  const goToRoot = () => {
-    navigate("/client/service-store");
+  const goToRoot = (categoryIdValue) => {
+    const categoryQuery = categoryIdValue
+      ? `?category=${encodeURIComponent(categoryIdValue)}`
+      : "";
+    navigate(`/client/service-store${categoryQuery}`);
   };
 
   const getCategoryServices = (categoryIdValue) =>
@@ -2125,7 +2246,7 @@ export default function ServiceStore() {
       <ComplianceServiceDetailView
         service={selectedCategoryService}
         category={selectedCategory}
-        onBack={() => navigate(selectedCategory.path)}
+        onBack={() => goToRoot(selectedCategory.id)}
       />
     );
   }
@@ -2222,51 +2343,11 @@ export default function ServiceStore() {
   }
 
   if (selectedCategory) {
-    const categoryServices = CATEGORY_SERVICE_GROUPS[selectedCategory.id] || [];
-
     return (
-      <div className="min-h-[calc(100vh-7rem)]">
-        <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
-          <div className="rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfcff_100%)] shadow-[0_24px_70px_rgba(15,23,42,0.06)]">
-            <div className="px-6 py-6 md:px-8">
-              <button
-                type="button"
-                onClick={goToRoot}
-                className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[#101eb9]"
-              >
-                <ArrowLeft size={16} />
-                Back to Parent Menus
-              </button>
-
-              <div className="mt-8">
-                <p className="text-sm font-black uppercase tracking-[0.28em] text-slate-400">
-                  {selectedCategory.eyebrow}
-                </p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-                  {selectedCategory.title}
-                </h1>
-                <p className="mt-3 text-sm font-bold uppercase tracking-[0.22em] text-[#2952ff]/55">
-                  {selectedCategory.description}
-                </p>
-                <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-500">
-                  Select a service from this category to continue with the
-                  workflow.
-                </p>
-              </div>
-
-              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {categoryServices.map((service) => (
-                  <CategoryServiceCard
-                    key={service.id}
-                    service={service}
-                    onSelect={handleCategoryServiceSelect}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Navigate
+        to={`/client/service-store?category=${encodeURIComponent(selectedCategory.id)}`}
+        replace
+      />
     );
   }
 
@@ -2304,7 +2385,7 @@ export default function ServiceStore() {
                     .toLowerCase()
                     .includes(serviceQuery.trim().toLowerCase()),
               );
-              const isExpanded = expandedCategoryId === category.id;
+              const isExpanded = activeExpandedCategoryId === category.id;
 
               if (serviceQuery && services.length === 0) {
                 return null;
@@ -2317,11 +2398,16 @@ export default function ServiceStore() {
                 >
                   <button
                     type="button"
-                    onClick={() =>
-                      setExpandedCategoryId((current) =>
-                        current === category.id ? null : category.id,
-                      )
-                    }
+                    onClick={() => {
+                      if (requestedCategoryId) {
+                        navigate("/client/service-store", { replace: true });
+                      }
+                      setExpandedCategoryId(
+                        activeExpandedCategoryId === category.id
+                          ? null
+                          : category.id,
+                      );
+                    }}
                     className="service-accordion-trigger"
                     aria-expanded={isExpanded}
                   >

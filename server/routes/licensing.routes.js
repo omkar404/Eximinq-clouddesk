@@ -25,6 +25,8 @@ const allowed = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/pkix-cert",
+  "application/x-x509-ca-cert",
 ]);
 const upload = multer({
   storage: multer.diskStorage({
