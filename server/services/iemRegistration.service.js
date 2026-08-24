@@ -1,7 +1,7 @@
 import {
   createServiceRequest, deleteServiceDocument, findFinancialContext,
   findServiceDefinition, findServiceDocument, findServiceRequest,
-  listServiceRequests, submitServiceRequestAndDeduct, updateServiceDraft,
+  listServiceDocuments, listServiceRequests, submitServiceRequestAndDeduct, updateServiceDraft,
   upsertServiceDocument
 } from "../models/serviceRequest.model.js";
 import { listFinancialTransactions } from "../models/certificateOfOrigin.model.js";
@@ -81,6 +81,18 @@ export async function submitIemRequest(userId, payload) {
   const [serviceDefinition, pricingSnapshot] = await Promise.all([
     definition(), getIemQuote(userId, payload.filingPart)
   ]);
+  if (!payload.requestId) throw httpError(422, "Save the IEM draft and upload all required documents before submission");
+  const documents = await listServiceDocuments(payload.requestId, userId, SERVICE_SLUG);
+  const uploadedKeys = new Set(documents.map((document) => document.document_key));
+  const requiredKeys = serviceDefinition.config.documents
+    .filter((document) => document.required && (!document.filingParts || document.filingParts.includes(payload.filingPart)))
+    .map((document) => document.id);
+  const missingDocuments = requiredKeys.filter((documentKey) => !uploadedKeys.has(documentKey));
+  if (missingDocuments.length) {
+    throw httpError(422, "Upload all required IEM documents before submission", {
+      documents: missingDocuments
+    });
+  }
   try {
     return await submitServiceRequestAndDeduct({
       userId, requestId: payload.requestId, serviceSlug: SERVICE_SLUG,

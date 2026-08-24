@@ -13,7 +13,26 @@ const removeUpload = (file) => file?.path && unlink(file.path).catch(() => {});
 const uploadDirectories = {
   "certificate-of-origin": resolve("server/uploads/certificate-of-origin"),
   "iem-registration": resolve("server/uploads/iem-registration"),
-  "industrial-licence": resolve("server/uploads/industrial-licence")
+  "industrial-licence": resolve("server/uploads/industrial-licence"),
+  "aqcs-pqms": resolve("server/uploads/aqcs-pqms"),
+  "bis": resolve("server/uploads/bis"),
+  "ca-certification": resolve("server/uploads/ca-certification"),
+  "cdsco": resolve("server/uploads/cdsco"),
+  "dsc-services": resolve("server/uploads/dsc-services"),
+  "ebrc": resolve("server/uploads/ebrc"),
+  "epcg": resolve("server/uploads/epcg"),
+  "epr-authorisation": resolve("server/uploads/epr-authorisation"),
+  "factory-license": resolve("server/uploads/factory-license"),
+  "fssai": resolve("server/uploads/fssai"),
+  "gst-lut": resolve("server/uploads/gst-lut"),
+  "gst-returns-audit": resolve("server/uploads/gst-returns-audit"),
+  "igcr-return": resolve("server/uploads/igcr-return"),
+  "lmpc": resolve("server/uploads/lmpc"),
+  "pollution-control": resolve("server/uploads/pollution-control"),
+  "rex-registration": resolve("server/uploads/rex"),
+  "un-iip": resolve("server/uploads/un-iip"),
+  "warehouse-license": resolve("server/uploads/warehouse-license"),
+  "wpc-eta": resolve("server/uploads/wpc-eta")
 };
 
 export async function clientList(req, res, next) {
@@ -67,7 +86,7 @@ export async function fileDownload(req, res, next) {
     });
     if (!file) return res.status(404).json({ message: "Document not found" });
     const directory = req.params.kind === "original"
-      ? uploadDirectories[file.service_slug]
+      ? uploadDirectories[file.service_slug] || resolve("server/uploads/licensing")
       : resolve("server/uploads/workflow");
     if (!directory) return res.status(404).json({ message: "Document storage not found" });
     res.download(resolve(directory, file.stored_name), file.original_name);

@@ -320,14 +320,14 @@ VALUES(
       {"id":"Health","label":"Nutraceuticals"}
     ],
     "documents":[
-      {"id":"performanceSummary","label":"Annual Performance Summary","required":true,"modes":["Returns"]},
-      {"id":"ficsReconciliation","label":"FICS Import Reconciliation","required":true,"modes":["Returns"]},
-      {"id":"analysisReport","label":"Certificate of Analysis / Lab Report","required":true,"modes":["License","FICS"]},
-      {"id":"labelDraft","label":"Product Label / Artwork Draft","required":true},
+      {"id":"performanceSummary","label":"FY Annual Performance Summary","required":true,"modes":["Returns"],"sampleAvailable":true},
+      {"id":"ficsReconciliation","label":"FICS vs Purchase Reconcile Sheet","required":true,"modes":["Returns"],"sampleAvailable":true},
+      {"id":"analysisReport","label":"Certificate of Analysis (Lab Report)","required":true,"modes":["License","FICS"]},
+      {"id":"labelDraft","label":"Proposed Technical Label","required":true,"requiredModes":["Labelling","FICS"],"sampleAvailable":true},
       {"id":"ingredientList","label":"Ingredient & Additive Declaration","required":true,"modes":["Labelling"]},
-      {"id":"currentLicense","label":"Current FSSAI License","required":true,"modes":["License"],"licenseTypes":["Renewal"]},
-      {"id":"exportDeclaration","label":"Export-Only Product Declaration","required":true,"modes":["License"],"licenseRoles":["Exporter"]},
-      {"id":"recallPlan","label":"Food Recall Plan","required":true,"modes":["License"]}
+      {"id":"currentLicense","label":"Current Central License Copy","required":true,"modes":["License"],"licenseTypes":["Renewal"]},
+      {"id":"exportDeclaration","label":"Export-Only Undertaking","required":true,"modes":["License"],"licenseRoles":["Exporter"]},
+      {"id":"recallPlan","label":"Statutory Recall Plan (Form 1)","required":true,"modes":["License"],"sampleAvailable":true}
     ],
     "pricing":{
       "officialFees":{"License":7500,"Returns":0,"Labelling":0,"FICS":0},
@@ -556,7 +556,7 @@ INSERT INTO service_catalog(slug, category, name, description, config)
 VALUES(
   'bis',
   'compliance',
-  'BIS Registration & Certification',
+  'BIS Certification Manager',
   'BIS CRS, ISI Mark, and Foreign Manufacturers Certification support',
   '{
     "transactionType": "G2B Safety",
@@ -565,17 +565,17 @@ VALUES(
     "currency": "INR",
     "sla": "15–20 Working Days",
     "requestModes": [
-      {"id":"CRS","label":"CRS Registration","description":"Compulsory Registration Scheme"},
-      {"id":"ISI","label":"ISI Mark License","description":"Domestic product certification"},
-      {"id":"FMCS","label":"FMCS Certification","description":"Foreign manufacturer certification"}
+      {"id":"CRS","label":"CRS (Elect)","description":"IT & Solar"},
+      {"id":"ISI","label":"ISI Mark","description":"Industry"},
+      {"id":"FMCS","label":"FMCS (FRN)","description":"Foreign Mfg"}
     ],
     "documents": [
       {"id":"cdfDocument","label":"Component Declaration Form (CDF)","requiredFor":["CRS","ISI","FMCS"]},
-      {"id":"techSpecSheet","label":"Technical Data Sheet with Schematics","requiredFor":["CRS","ISI","FMCS"]},
-      {"id":"testReport","label":"BIS-recognised Laboratory Test Report","requiredFor":["CRS","ISI","FMCS"]},
-      {"id":"airAgreement","label":"Authorised Indian Representative Agreement","requiredFor":["FMCS"],"showFor":["FMCS"]},
-      {"id":"factoryProcess","label":"Factory Process Flow and Quality Plan","requiredFor":["ISI","FMCS"],"showFor":["ISI","FMCS"]},
-      {"id":"trademarkCert","label":"Trademark Registration Certificate","requiredFor":[]}
+      {"id":"techSpecSheet","label":"Technical Data Sheet (with Schematics)","requiredFor":["CRS","ISI","FMCS"]},
+      {"id":"testReport","label":"NABL Accredited Test Report","requiredFor":["CRS","ISI","FMCS"]},
+      {"id":"airAgreement","label":"AIR Legal Agreement & ID Proof","requiredFor":["FMCS"],"showFor":["FMCS"]},
+      {"id":"factoryProcess","label":"Detailed Factory Layout & QMS Logs","requiredFor":["ISI","FMCS"],"showFor":["ISI","FMCS"]},
+      {"id":"trademarkCert","label":"Brand Trademark Registration","requiredFor":[]}
     ],
     "pricing": {
       "officialFees": {"CRS":1000,"ISI":15000,"FMCS":25000},
@@ -605,27 +605,26 @@ VALUES(
   'Factory licensing, renewal, and statutory infrastructure compliance support',
   '{
     "transactionType": "Factory Compliance",
-    "standard": "CBIC Factory Stuffing Permission",
+    "standard": "DISH Factory Licence Compliance",
     "prioritySla": true,
     "currency": "INR",
-    "sla": "10-15 Working Days",
+    "sla": "15-20 Working Days",
     "requestTypes": [
-      {"id":"New","label":"New Permission","description":"Factory Stuffing Approval"},
-      {"id":"Renewal","label":"Renewal","description":"Permission Continuation"}
+      {"id":"New","label":"New License","description":"Drafting (₹15,000)"},
+      {"id":"Renewal","label":"Renewal","description":"Audit (₹5,000)"}
     ],
     "documents": [
-      {"id":"prevPermission","label":"Previous Factory Stuffing Permission","required":true,"requestTypes":["Renewal"]},
-      {"id":"factoryPhotos","label":"Factory Premises Photographs","required":true},
-      {"id":"sitePlan","label":"Factory Site Plan & Examination Area","required":true},
-      {"id":"factoryOwnership","label":"Factory Ownership / Registered Lease","required":true},
-      {"id":"selfSealingDecl","label":"Self-Sealing & CCTV Declaration","required":true},
-      {"id":"iecGstCopy","label":"IEC & GST Registration Copy","required":false}
+      {"id":"form1","label":"Form 1 (Application for Registration)","required":true,"sampleAvailable":true},
+      {"id":"sitePlan","label":"Duly Signed Factory Site Plan","required":true},
+      {"id":"stabilityCert","label":"Stability Certificate (Competent Person)","required":true,"requestTypes":["New"]},
+      {"id":"prevLicense","label":"Previous License Original Copy","required":true,"requestTypes":["Renewal"]},
+      {"id":"workerList","label":"Current Employee / Worker Register","required":true},
+      {"id":"fireNoc","label":"Valid Fire Safety NOC","required":true}
     ],
     "pricing": {
       "officialFee": 0,
-      "draftingFees": {"New":12500,"Renewal":7500},
-      "savingsPerContainer": 8000,
-      "successFeeRate": 1,
+      "draftingFees": {"New":15000,"Renewal":5000},
+      "successPremium": {"New":10000,"Renewal":9406.78},
       "gstRate": 18
     }
   }'::jsonb
@@ -1002,13 +1001,13 @@ VALUES(
       {"id": "Organization", "label": "Organization", "description": "Authorized signatory DSC"}
     ],
     "certificateClasses": [
-      {"id": "Class2", "label": "Class II", "description": "Standard validation"},
-      {"id": "Class3", "label": "Class III", "description": "High assurance"}
+      {"id": "Class2", "label": "Class II (Optimized for DGFT Filings)"},
+      {"id": "Class3", "label": "Class III (Mandatory for e-Tendering)"}
     ],
     "usageTypes": [
-      {"id": "Combo", "label": "Combo", "description": "Signature + Encryption"},
-      {"id": "Signature", "label": "Signature", "description": "Digital signing"},
-      {"id": "Encryption", "label": "Encryption", "description": "Secure encryption"}
+      {"id": "Combo", "label": "Combo (Signature + Encryption)"},
+      {"id": "Signature", "label": "Signature Only"},
+      {"id": "Encryption", "label": "Encryption Only"}
     ],
     "validityOptions": [
       {"value": 1, "label": "1 Year"},
@@ -1016,14 +1015,13 @@ VALUES(
       {"value": 3, "label": "3 Years"}
     ],
     "documents": [
-      {"id": "applicantPhoto", "label": "Recent Applicant Photograph", "required": true},
-      {"id": "panCard", "label": "PAN Card", "required": true},
-      {"id": "addressProof", "label": "Address Proof", "required": true},
-      {"id": "iecCert", "label": "IEC Certificate", "required": true},
-      {"id": "orgProof", "label": "Organization Registration Proof", "required": true, "applicantTypes": ["Organization"]},
-      {"id": "boardRes", "label": "Board Resolution", "required": true, "applicantTypes": ["Organization"], "sampleAvailable": true},
-      {"id": "directorList", "label": "Director / Partner List", "required": true, "applicantTypes": ["Organization"], "sampleAvailable": true},
-      {"id": "authLetter", "label": "Authorization Letter", "required": true, "applicantTypes": ["Organization"], "sampleAvailable": true}
+      {"id": "applicantPhoto", "label": "Applicant Passport Photo", "required": true},
+      {"id": "panCard", "label": "Applicant PAN Card (Self-Attested)", "required": true},
+      {"id": "iecCert", "label": "IEC Certificate Copy", "required": true},
+      {"id": "orgProof", "label": "Organization Proof (GST / COI)", "required": true, "applicantTypes": ["Organization"]},
+      {"id": "boardRes", "label": "Board Resolution (Format Provided)", "required": true, "applicantTypes": ["Organization"], "sampleAvailable": true},
+      {"id": "directorList", "label": "List of Directors / Partners", "required": true, "applicantTypes": ["Organization"], "sampleAvailable": true},
+      {"id": "authLetter", "label": "Authorisation Letter", "required": false, "displayRequired": true, "requiredApplicantTypes": ["Organization"], "sampleAvailable": true}
     ],
     "pricing": {
       "officialFeePerYear": {"Class2": 900, "Class3": 1200},
@@ -1050,6 +1048,7 @@ VALUES(
   'Animal and plant quarantine permits, bio-security audits, and shipment clearance',
   '{
     "transactionType": "Bio-Security",
+    "trackingName": "PQMS Bio-Security Audit",
     "standard": "AQCS / PQMS Regulatory Clearance",
     "prioritySla": true,
     "priorityLabel": "Demurrage Priority",
@@ -1146,12 +1145,12 @@ VALUES(
       {"id": "gstr9", "label": "GSTR-9", "description": "Annual Return"}
     ],
     "documents": [
-      {"id": "salesRegister", "label": "Sales Register", "required": true},
-      {"id": "purchaseRegister", "label": "Purchase Register", "required": true, "returnTypes": ["gstr1_3b"], "visibleTypes": ["gstr1_3b", "itc_audit"]},
-      {"id": "icegateShippingBills", "label": "ICEGATE Shipping Bills", "required": true, "returnTypes": ["gstr1_3b"], "visibleTypes": ["gstr1_3b"]},
-      {"id": "gstr2bDownload", "label": "GSTR-2B Download", "required": true, "returnTypes": ["itc_audit"], "visibleTypes": ["itc_audit"]},
-      {"id": "trialBalance", "label": "Trial Balance", "required": true, "returnTypes": ["gstr9"], "visibleTypes": ["gstr9"]},
-      {"id": "bankStatement", "label": "Bank Statement", "required": false}
+      {"id": "salesRegister", "label": "Export Sales Register (with SB Details)", "required": true, "sampleAvailable": true},
+      {"id": "purchaseRegister", "label": "Purchase Ledger / ITC Register", "required": true, "returnTypes": ["gstr1_3b"], "visibleTypes": ["gstr1_3b", "itc_audit"]},
+      {"id": "icegateShippingBills", "label": "ICEGATE SB Data Summary (Excel)", "required": true, "returnTypes": ["gstr1_3b"], "visibleTypes": ["gstr1_3b"]},
+      {"id": "gstr2bDownload", "label": "GSTR-2B JSON / Excel from Portal", "required": true, "returnTypes": ["itc_audit"], "visibleTypes": ["itc_audit"]},
+      {"id": "trialBalance", "label": "Audited Trial Balance (FY)", "required": true, "returnTypes": ["gstr9"], "visibleTypes": ["gstr9"]},
+      {"id": "bankStatement", "label": "Bank Statement (FIRC/Realization)", "required": false}
     ],
     "pricing": {
       "gstr1_3b": {"officialFee": 0, "draftingFee": 2500, "shieldPremium": 5000, "gstRate": 18},
@@ -1223,8 +1222,8 @@ VALUES(
     "indianAgent": "Linked Authorized Agent",
     "requestModes": [
       {"id": "medical-device", "label": "Medical Device", "description": "MDR 2017"},
-      {"id": "drug", "label": "Drug", "description": "Form 10 / Site Registration"},
-      {"id": "cosmetic", "label": "Cosmetic", "description": "Form COS-2"}
+      {"id": "drug", "label": "Drugs (F10)", "description": "Site Reg."},
+      {"id": "cosmetic", "label": "Cosmetics", "description": "Form COS-2"}
     ],
     "medicalDeviceClasses": [
       {"value": "A", "label": "Class A - Low Risk"},
@@ -1233,13 +1232,13 @@ VALUES(
       {"value": "D", "label": "Class D - High Risk"}
     ],
     "documents": [
-      {"id": "plantMasterFile", "label": "Plant Master File", "required": true, "sampleAvailable": true},
-      {"id": "freeSaleCert", "label": "Free Sale Certificate / Market Authorization", "required": true},
-      {"id": "deviceMasterFile", "label": "Device Master File", "required": true, "requestModes": ["medical-device"]},
-      {"id": "iso13485", "label": "ISO 13485 Certificate", "required": true, "requestModes": ["medical-device"]},
-      {"id": "siteMasterFile", "label": "Site Master File", "required": true, "requestModes": ["drug"]},
-      {"id": "labelSpecs", "label": "Labeling & Pack Specifications", "required": true},
-      {"id": "agentAuth", "label": "Indian Agent Authorization Letter", "required": true, "sampleAvailable": true}
+      {"id": "plantMasterFile", "label": "Plant Master File (PMF)", "required": true, "sampleAvailable": true},
+      {"id": "freeSaleCert", "label": "Apostilled Free Sale Certificate (FSC)", "required": true},
+      {"id": "deviceMasterFile", "label": "Device Master File (Technical Dossier)", "required": true, "requestModes": ["medical-device"]},
+      {"id": "iso13485", "label": "ISO 13485 Certificate (Current)", "required": true, "requestModes": ["medical-device"]},
+      {"id": "siteMasterFile", "label": "Site Master File (SMF)", "required": true, "requestModes": ["drug"]},
+      {"id": "labelSpecs", "label": "India-Specific Label Artworks", "required": true},
+      {"id": "agentAuth", "label": "Authorized Agent Appointment Letter", "required": true, "sampleAvailable": true}
     ],
     "pricing": {
       "medical-device": {"officialFee": 75000, "draftingFee": 25000, "highRiskDraftingFee": 50000, "shieldPremium": 25000, "gstRate": 18},
@@ -1336,12 +1335,12 @@ VALUES(
       {"id": "brand-owner", "label": "Brand Owner"}
     ],
     "documents": [
-      {"id": "gstCert", "label": "GST Registration Certificate", "requiredFor": ["new", "return"], "availableFor": ["new", "return"]},
-      {"id": "actionPlan", "label": "EPR Action Plan & Target Calculation", "requiredFor": ["new"], "availableFor": ["new"], "sampleAvailable": true},
-      {"id": "procurementData", "label": "Import / Procurement Data for Previous FY", "requiredFor": ["new", "return"], "availableFor": ["new", "return"], "sampleAvailable": true},
-      {"id": "agreementWithPWP", "label": "Agreement with Recycler / PWP", "requiredFor": ["new"], "availableFor": ["new"]},
-      {"id": "recyclingCredits", "label": "Recycling Certificates / EPR Credits", "requiredFor": ["return"], "availableFor": ["return"]},
-      {"id": "signatoryKyc", "label": "Authorized Signatory KYC", "requiredFor": ["new", "return"], "availableFor": ["new", "return"], "sampleAvailable": true}
+      {"id": "gstCert", "label": "Latest GST Certificate (REG-06)", "requiredFor": ["new", "return"], "availableFor": ["new", "return"]},
+      {"id": "actionPlan", "label": "EPR Technical Action Plan (CPCB Format)", "requiredFor": ["new"], "availableFor": ["new"], "sampleAvailable": true},
+      {"id": "procurementData", "label": "Mass-Balance Reconciliation Sheet (MT)", "requiredFor": ["new", "return"], "availableFor": ["new", "return"], "sampleAvailable": true},
+      {"id": "agreementWithPWP", "label": "Legal MOU with Authorized Recycler", "requiredFor": ["new"], "availableFor": ["new"]},
+      {"id": "recyclingCredits", "label": "Recycling Certificate Ledger (CPCB Pool)", "requiredFor": ["return"], "availableFor": ["return"]},
+      {"id": "signatoryKyc", "label": "Authorized Signatory Board Resolution", "requiredFor": ["new", "return"], "availableFor": ["new", "return"], "sampleAvailable": true}
     ],
     "pricing": {
       "gstRate": 18,
@@ -1420,19 +1419,18 @@ VALUES(
       {"id": "intent", "label": "Part A (Intent)", "description": "Memorandum of Intent"},
       {"id": "commence", "label": "Part B (Commence)", "description": "Commercial Production"}
     ],
-    "sectorOptions": [
-      {"value": "non-compulsory", "label": "Non-Compulsory Licensed"},
-      {"value": "compulsory", "label": "Compulsory Licensed"},
-      {"value": "reserved", "label": "Reserved Sector"}
-    ],
+    "sectorEligibility": "Non-Compulsory Licensed",
     "documents": [
-      {"id": "processDescription", "label": "Brief Manufacturing Process Description", "required": true},
+      {"id": "technicalNote", "label": "Brief Manufacturing Process Description", "required": true},
       {"id": "moaAoa", "label": "Company MOA/AOA (Self-Attested)", "required": true},
-      {"id": "plantLayout", "label": "Plant Layout / Project Report", "required": false}
+      {"id": "landDeed", "label": "Land Possession / Allotment Document", "required": true},
+      {"id": "partAAck", "label": "IEM Part A Acknowledgment Copy", "required": true, "filingParts": ["commence"]},
+      {"id": "investmentProof", "label": "Machinery Invoices / CA Investment Cert", "required": true, "filingParts": ["commence"]},
+      {"id": "panCard", "label": "Entity PAN Card Copy", "required": true}
     ],
     "pricing": {
-      "intent": {"officialFee": 1000, "serviceCharge": 250, "gstRate": 18},
-      "commence": {"officialFee": 1500, "serviceCharge": 350, "gstRate": 18}
+      "intent": {"officialFee": 1000, "serviceCharge": 20000, "gstRate": 18},
+      "commence": {"officialFee": 1000, "serviceCharge": 25000, "gstRate": 18}
     }
   }'::jsonb
 )

@@ -16,12 +16,18 @@ function httpError(status, message, details) {
 }
 
 function mapRequest(row) {
+  const serviceConfig = row.service_config || {};
   return {
     id: row.id,
     requestCode: row.request_code,
     serviceSlug: row.service_slug,
-    service: { name: row.service_name, category: row.service_category },
+    service: {
+      name: serviceConfig.trackingName || row.service_name,
+      category: row.service_category,
+      configuration: serviceConfig
+    },
     status: row.status,
+    documentCount: Number(row.document_count || 0),
     formData: row.payload,
     pricing: row.pricing_snapshot,
     submittedAt: row.submitted_at,
@@ -47,11 +53,12 @@ function mapRequest(row) {
   };
 }
 
-function mapDocument(document) {
+function mapDocument(document, documentDefinitions = []) {
+  const definition = documentDefinitions.find((item) => item.id === document.document_key);
   return {
     id: document.id,
     documentKey: document.document_key,
-    label: document.document_label,
+    label: document.document_label || definition?.label || document.document_key,
     name: document.original_name,
     mimeType: document.mime_type,
     size: Number(document.size_bytes),
@@ -63,9 +70,10 @@ async function withRelations(row) {
   if (!row) return null;
   const related = await getWorkflowRelations(row.id);
   const base = mapRequest(row);
+  const documentDefinitions = base.service.configuration?.documents || [];
   return {
     ...base,
-    documents: related.documents.map(mapDocument),
+    documents: related.documents.map((document) => mapDocument(document, documentDefinitions)),
     clarifications: related.clarifications.map((item) => ({
       id: item.id,
       comments: item.comments,
@@ -75,7 +83,7 @@ async function withRelations(row) {
       requestedBy: item.requested_by_name,
       resubmittedAt: item.resubmitted_at,
       createdAt: item.created_at,
-      documents: item.documents.map(mapDocument)
+      documents: item.documents.map((document) => mapDocument(document))
     })),
     events: [
       ...(base.submittedAt ? [{
@@ -90,7 +98,7 @@ async function withRelations(row) {
         createdAt: event.created_at
       }))
     ],
-    workDocuments: related.workDocuments.map(mapDocument),
+    workDocuments: related.workDocuments.map((document) => mapDocument(document)),
     transactions: related.transactions.map((transaction) => ({
       id: transaction.id, accountType: transaction.account_type,
       transactionType: transaction.transaction_type, amount: Number(transaction.amount),

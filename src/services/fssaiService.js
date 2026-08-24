@@ -8,3 +8,4 @@ export const saveFssaiDraft = async (payload) => (await API.post(`${basePath}/dr
 export const submitFssai = async (payload) => (await API.post(`${basePath}/submit`, payload)).data;
 export async function uploadFssaiDocument(requestId,key,file){const data=new FormData();data.append("file",file);return(await API.post(`${basePath}/drafts/${requestId}/documents/${key}`,data)).data;}
 export const removeFssaiDocument = async (requestId,key) => API.delete(`${basePath}/drafts/${requestId}/documents/${key}`);
+export async function downloadFssaiDocument(requestId,key,fileName){const response=await API.get(`${basePath}/requests/${requestId}/documents/${key}/download`,{responseType:"blob"});const url=URL.createObjectURL(response.data);const anchor=document.createElement("a");anchor.href=url;anchor.download=fileName||"document";document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);}

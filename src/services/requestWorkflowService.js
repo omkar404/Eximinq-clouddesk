@@ -58,3 +58,19 @@ export const downloadWorkflowFile = async ({ role, requestId, kind, fileId, name
   anchor.remove();
   URL.revokeObjectURL(url);
 };
+
+export const viewWorkflowFile = async ({ role, requestId, kind, fileId }) => {
+  const base = role === "admin" ? "/admin/workflow-requests"
+    : role === "agent" ? "/agent/tasks" : "/client/track-requests";
+  const previewWindow = window.open("", "_blank", "noopener,noreferrer");
+  try {
+    const response = await api.get(`${base}/${requestId}/files/${kind}/${fileId}`, { responseType: "blob" });
+    const url = URL.createObjectURL(response.data);
+    if (previewWindow) previewWindow.location.href = url;
+    else window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (error) {
+    previewWindow?.close();
+    throw error;
+  }
+};

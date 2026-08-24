@@ -2,21 +2,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
-  ArrowLeft, ArrowRight, BriefcaseBusiness, FileText, Receipt,
-  Save, ShieldCheck, Upload, Users, Wallet, X, Zap
+  ArrowLeft, ArrowRight, BriefcaseBusiness, Download, FileText, Info, Receipt,
+  Save, ShieldCheck, Trash2, Upload, Users, Wallet, X, Zap
 } from "lucide-react";
 import {
-  getIemConfiguration, getIemLedger, getIemQuote, getIemRequests,
+  downloadIemDocument, getIemConfiguration, getIemLedger, getIemQuote, getIemRequests,
   removeIemDocument, saveIemDraft, submitIem, uploadIemDocument
 } from "../../services/iemRegistrationService";
 
 const emptyFiles = {
-  processDescription: { status: "Not Uploaded", name: null },
+  technicalNote: { status: "Not Uploaded", name: null },
   moaAoa: { status: "Not Uploaded", name: null },
-  plantLayout: { status: "Not Uploaded", name: null }
+  landDeed: { status: "Not Uploaded", name: null },
+  partAAck: { status: "Not Uploaded", name: null },
+  investmentProof: { status: "Not Uploaded", name: null },
+  panCard: { status: "Not Uploaded", name: null }
 };
 
-export default function IemRegistrationWorkflow({ service, onBack }) {
+export default function IemRegistrationWorkflow({ onBack }) {
   const navigate = useNavigate();
   const [configuration, setConfiguration] = useState(null);
   const [quote, setQuote] = useState(null);
@@ -27,7 +30,6 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
   const [nicCode, setNicCode] = useState("");
   const [investment, setInvestment] = useState("");
   const [employment, setEmployment] = useState("");
-  const [sector, setSector] = useState("");
   const [files, setFiles] = useState(emptyFiles);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState("");
@@ -50,7 +52,9 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
         const restoredFiles = { ...emptyFiles };
         if (draft) {
           for (const document of draft.documents || []) {
-            restoredFiles[document.documentKey] = {
+            const documentKey = document.documentKey;
+            if (!restoredFiles[documentKey]) continue;
+            restoredFiles[documentKey] = {
               status: "Uploaded",
               name: document.name,
               size: Number(document.size || 0)
@@ -68,7 +72,6 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
         setNicCode(draftPayload.nicCode || "");
         setInvestment(draftPayload.investment || "");
         setEmployment(draftPayload.expectedEmployment || "");
-        setSector(draftPayload.sectorEligibility || "");
         setFiles(restoredFiles);
       })
       .catch(() => active && setError("Unable to load IEM Registration configuration."))
@@ -94,12 +97,15 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
   const serviceConfig = configuration?.service;
   const payload = () => ({
     requestId, filingPart, nicCode, investment, expectedEmployment: employment,
-    sectorEligibility: sector, documents: files
+    documents: files
   });
+  const requiredDocuments = useMemo(() => (serviceConfig?.documents || []).filter(
+    (document) => !document.filingParts || document.filingParts.includes(filingPart)
+  ), [serviceConfig, filingPart]);
   const valid = /^\d{5}$/.test(nicCode) && Number(investment) > 0 &&
-    Number(employment) > 0 && sector &&
-    files.processDescription.status === "Uploaded" && files.moaAoa.status === "Uploaded";
-  const requiredDocuments = useMemo(() => serviceConfig?.documents || [], [serviceConfig]);
+    Number(employment) > 0 && requiredDocuments.every(
+      (document) => !document.required || files[document.id]?.status === "Uploaded"
+    );
 
   const ensureDraft = async () => {
     if (requestId) return requestId;
@@ -134,6 +140,15 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
     } catch (requestError) {
       Swal.fire("Unable to remove document", requestError.response?.data?.message || "Please try again.", "error");
     } finally { setUploading(""); }
+  };
+
+  const downloadFile = async (documentKey) => {
+    if (!requestId || !files[documentKey]?.name) return;
+    try {
+      await downloadIemDocument(requestId, documentKey, files[documentKey].name);
+    } catch (requestError) {
+      Swal.fire("Download failed", requestError.response?.data?.message || "The document could not be downloaded.", "error");
+    }
   };
 
   const saveDraft = async () => {
@@ -193,8 +208,8 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
           <header className="flex justify-between gap-4 border-b border-slate-100 px-5 py-4">
             <div className="flex gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2952ff] text-white shadow-lg shadow-blue-100"><BriefcaseBusiness /></div>
               <div><button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#2952ff]"><ArrowLeft size={16} /> Back to Compliance</button>
-                <div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="text-xl font-black">{serviceConfig?.name || service.title}</h1><span className="rounded-full bg-slate-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">{serviceConfig?.transactionType}</span></div>
-                <p className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-slate-500">{serviceConfig?.standard}<Zap size={11} className="text-amber-500" /> DPIIT Priority</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="text-xl font-black uppercase">{serviceConfig?.name || "IEM Statutory Filing"}</h1><span className="rounded-full bg-slate-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">{serviceConfig?.transactionType}</span></div>
+                <p className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-slate-500">Industrial Memorandum Mode<Zap size={11} className="text-amber-500" /> DPIIT Priority</p>
               </div></div>
             <button onClick={onBack} className="h-10 w-10 rounded-full text-slate-400 hover:bg-slate-100"><X className="mx-auto" size={20} /></button>
           </header>
@@ -207,14 +222,15 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
                 <Field icon={<BriefcaseBusiness />} label="5-Digit NIC Code"><input maxLength="5" value={nicCode} onChange={(event) => setNicCode(event.target.value.replace(/\D/g, ""))} placeholder="E.g. 21001" /></Field>
                 <Field icon={<Receipt />} label="Investment in P&M (INR Cr)"><input type="number" min="0" value={investment} onChange={(event) => setInvestment(event.target.value)} placeholder="Total machinery value" /></Field>
                 <Field icon={<Users />} label="Expected Employment"><input type="number" min="0" value={employment} onChange={(event) => setEmployment(event.target.value)} placeholder="Total direct manpower" /></Field>
-                <Field icon={<ShieldCheck />} label="Sector Eligibility"><select value={sector} onChange={(event) => setSector(event.target.value)}><option value="">Select eligibility</option>{(serviceConfig?.sectorOptions || []).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
+                <div className="space-y-1.5"><span className="flex items-center gap-2 px-1 text-[10px] font-black uppercase tracking-[.16em] text-slate-500"><ShieldCheck size={16} />Sector Eligibility</span><div className="flex min-h-[48px] items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-black text-slate-500 shadow-inner"><span>{serviceConfig?.sectorEligibility || "Non-Compulsory Licensed"}</span><Info size={15} /></div></div>
               </div>
               <div><h2 className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[.18em]"><Upload size={14} /> Required Audit Evidence</h2>
                 <div className="space-y-2">{requiredDocuments.map((document) => <article key={document.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3"><FileText className={files[document.id]?.status === "Uploaded" ? "text-emerald-500" : "text-slate-400"} /><div className="min-w-0 flex-1"><strong className="block text-xs">{document.label} {document.required && <em className="ml-1 not-italic text-[9px] text-rose-500">REQUIRED</em>}</strong><span className={`block truncate text-[10px] ${files[document.id]?.status === "Uploaded" ? "text-emerald-600" : "text-slate-400"}`}>{files[document.id]?.name || "Compliance file required"}</span></div>
-                  {files[document.id]?.status === "Uploaded" && <button onClick={() => removeFile(document.id)} className="text-[10px] font-black uppercase text-rose-500">Remove</button>}
+                  {files[document.id]?.status === "Uploaded" && <><button onClick={() => downloadFile(document.id)} className="rounded-lg p-2 text-[#2952ff]" aria-label={`Download ${document.label}`}><Download size={16} /></button><button onClick={() => removeFile(document.id)} className="rounded-lg p-2 text-rose-500" aria-label={`Remove ${document.label}`}><Trash2 size={16} /></button></>}
                   <label className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase">{uploading === document.id ? "Uploading..." : files[document.id]?.status === "Uploaded" ? "Replace" : "Upload"}<input type="file" className="sr-only" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onChange={(event) => selectFile(document.id, event)} /></label>
                 </article>)}</div>
               </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] leading-relaxed text-amber-900"><strong>Statutory Note:</strong> IEM Part B must be filed immediately upon the commencement of commercial production. Failure to do so renders the IEM Part A intentions void and may lead to penal action under the IDR Act.</div>
             </div>
             <aside className={`overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl transition-opacity xl:sticky xl:top-24 xl:self-start ${quoteLoading ? "opacity-80" : "opacity-100"}`}>
               <div className="flex items-center gap-2 border-b border-white/10 px-5 py-4 text-blue-400"><Receipt size={16} /><span className="text-[10px] font-black uppercase tracking-[.2em]">Transaction Ledger (INR)</span></div>
@@ -225,7 +241,7 @@ export default function IemRegistrationWorkflow({ service, onBack }) {
               <div className="flex items-center justify-between bg-[#2952ff] px-5 py-4"><div><span className="text-[9px] font-black uppercase tracking-widest text-blue-100">Final Payable</span><strong className="block text-2xl">₹{Number(costs.total || 0).toLocaleString("en-IN")}</strong></div><span className="text-right text-[9px] uppercase text-white/60">{ledger.transactions.length} recent<br />transactions</span></div>
             </aside>
           </div>
-          <footer className="flex flex-col items-stretch justify-between gap-3 border-t bg-slate-50 px-5 py-4 sm:flex-row sm:items-center"><button onClick={onBack} className="text-[10px] font-black uppercase tracking-[.2em] text-slate-400">Discard</button><div className="flex gap-3"><button onClick={saveDraft} disabled={busy || !serviceConfig} className="flex flex-1 items-center justify-center gap-2 rounded-xl border bg-white px-6 py-3 text-sm font-bold"><Save size={16} /> Save Draft</button><button onClick={submit} disabled={busy || !valid} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-black ${valid ? "bg-[#2952ff] text-white shadow-lg shadow-blue-100" : "bg-slate-200 text-slate-400"}`}>{valid ? "Submit IEM Filing" : "Incomplete Audit"} <ArrowRight size={16} /></button></div></footer>
+          <footer className="flex flex-col items-stretch justify-between gap-3 border-t bg-slate-50 px-5 py-4 sm:flex-row sm:items-center"><button onClick={onBack} className="text-[10px] font-black uppercase tracking-[.2em] text-slate-400">Discard</button><div className="flex gap-3"><button onClick={saveDraft} disabled={busy || !serviceConfig} className="flex flex-1 items-center justify-center gap-2 rounded-xl border bg-white px-6 py-3 text-sm font-bold"><Save size={16} /> Save Draft</button><button onClick={submit} disabled={busy || !valid} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-black ${valid ? "bg-[#2952ff] text-white shadow-lg shadow-blue-100" : "bg-slate-200 text-slate-400"}`}>{valid ? "Confirm & File Memo" : "Incomplete Audit"} <ArrowRight size={16} /></button></div></footer>
         </div>
       </div>
     </div>

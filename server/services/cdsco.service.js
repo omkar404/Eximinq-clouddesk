@@ -1,5 +1,5 @@
 import {
-  createServiceRequest, deleteServiceDocument, findFinancialContext, findServiceDefinition,
+  createServiceRequest, deleteServiceDocument, findClientServiceIdentity, findFinancialContext, findServiceDefinition,
   findServiceDocument, findServiceRequest, listServiceDocuments, listServiceRequests,
   submitServiceRequestAndDeduct, updateServiceDraft, upsertServiceDocument,
 } from "../models/serviceRequest.model.js";
@@ -27,9 +27,9 @@ function calculatePricing(config, requestMode, deviceClass) {
     serviceCharge, gstRate, gst, total: Number((officialFee + serviceCharge + gst).toFixed(2)) };
 }
 export async function getCdscoConfiguration(userId) {
-  const [definition, finances] = await Promise.all([getDefinition(), findFinancialContext(userId)]);
+  const [definition, finances, identity] = await Promise.all([getDefinition(), findFinancialContext(userId), findClientServiceIdentity(userId)]);
   return { service: { slug: definition.slug, category: definition.category, name: definition.name,
-    description: definition.description, ...definition.config }, financialContext: {
+    description: definition.description, ...definition.config }, identity: { iecNumber: identity.iec_number || "", companyName: identity.company_name || "", gstin: identity.gstin || "" }, financialContext: {
     walletBalance: Number(finances.wallet_balance || 0), creditLineBalance: Number(finances.credit_line_balance || 0),
     creditLimit: Number(finances.credit_limit || 0) } };
 }

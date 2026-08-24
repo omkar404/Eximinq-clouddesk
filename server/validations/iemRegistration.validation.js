@@ -11,7 +11,6 @@ export function validateIemRequest(body = {}, { requireComplete = false } = {}) 
     nicCode: text(body.nicCode),
     investment: text(body.investment),
     expectedEmployment: text(body.expectedEmployment),
-    sectorEligibility: text(body.sectorEligibility),
     documents: body.documents && typeof body.documents === "object" ? body.documents : {}
   };
   const errors = {};
@@ -20,8 +19,9 @@ export function validateIemRequest(body = {}, { requireComplete = false } = {}) 
     if (!/^\d{5}$/.test(value.nicCode)) errors.nicCode = "Enter a valid 5-digit NIC code";
     if (!value.investment || Number(value.investment) <= 0) errors.investment = "Enter the investment in plant and machinery";
     if (!value.expectedEmployment || Number(value.expectedEmployment) <= 0) errors.expectedEmployment = "Enter expected employment";
-    if (!value.sectorEligibility) errors.sectorEligibility = "Select sector eligibility";
-    for (const documentKey of ["processDescription", "moaAoa"]) {
+    const requiredDocuments = ["technicalNote", "moaAoa", "landDeed", "panCard"];
+    if (value.filingPart === "commence") requiredDocuments.push("partAAck", "investmentProof");
+    for (const documentKey of requiredDocuments) {
       if (value.documents[documentKey]?.status !== "Uploaded") {
         errors[`documents.${documentKey}`] = "Required document is not uploaded";
       }

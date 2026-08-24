@@ -23,3 +23,4 @@ export async function uploadEprDocument(requestId, documentKey, file) {
 }
 export const removeEprDocument = async (requestId, documentKey) =>
   API.delete(`${basePath}/drafts/${requestId}/documents/${documentKey}`);
+export async function downloadEprDocument(requestId,documentKey,fileName){const response=await API.get(`${basePath}/requests/${requestId}/documents/${documentKey}/download`,{responseType:"blob"});const url=URL.createObjectURL(response.data);const anchor=document.createElement("a");anchor.href=url;anchor.download=fileName||"document";document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);}

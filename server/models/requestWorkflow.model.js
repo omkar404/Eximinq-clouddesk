@@ -3,7 +3,9 @@ import { pool } from "../database/pool.js";
 const requestSelect = `
   SELECT sr.id,sr.request_code,sr.service_slug,sr.status,sr.payload,sr.pricing_snapshot,
          sr.submitted_at,sr.created_at,sr.updated_at,
-         sc.name service_name,sc.category service_category,
+         sc.name service_name,sc.category service_category,sc.config service_config,
+         (SELECT COUNT(*)::int FROM service_request_documents document
+           WHERE document.request_id=sr.id) document_count,
          u.id client_id,u.name client_name,u.email client_email,u.user_code client_code,
          a.id assignment_id,a.agent_id,a.instructions assignment_instructions,
          a.due_date assignment_due_date,a.status assignment_status,
@@ -17,7 +19,7 @@ const requestSelect = `
 
 export async function listClientRequests(userId) {
   const result = await pool.query(
-    `${requestSelect} WHERE sr.user_id=$1 ORDER BY sr.updated_at DESC`,
+    `${requestSelect} WHERE sr.user_id=$1 AND sr.status <> 'DRAFT' ORDER BY sr.updated_at DESC`,
     [userId]
   );
   return result.rows;

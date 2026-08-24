@@ -1,18 +1,59 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle, ArrowLeft, Bell, Calendar, CheckCircle2, ChevronRight,
-  Clock3, FileText, LoaderCircle, Search, Upload, UserRound
+  AlertTriangle, ArrowLeft, Bell, ChevronRight, Clock3, Download, Eye,
+  FileText, LoaderCircle, Search, Upload, UserRound
 } from "lucide-react";
 import Swal from "sweetalert2";
 import {
   getClientTrackedRequest, listClientTrackedRequests,
-  downloadWorkflowFile, listClientNotifications, resubmitClarification, uploadClarificationDocument
+  downloadWorkflowFile, listClientNotifications, resubmitClarification,
+  uploadClarificationDocument, viewWorkflowFile
 } from "../../services/requestWorkflowService";
 
-const readable = (value = "") => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const readable = (value = "") => value.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const when = (value) => value ? new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium", timeStyle: "short"
 }).format(new Date(value)) : "—";
+
+const FIELD_LABELS = {
+  requestMode: "Selected Service/Category",
+  requestType: "Request Type",
+  portCode: "Port of Entry",
+  consignmentValue: "Consignment Value (INR)",
+  treatmentType: "Phyto-Treatment Method"
+};
+const HIDDEN_PAYLOAD_KEYS = new Set(["requestId", "documents"]);
+
+function optionLabel(configuration, key, value) {
+  const sources = {
+    requestMode: configuration?.requestModes,
+    requestType: configuration?.requestTypes,
+    treatmentType: configuration?.treatmentMethods
+  };
+  const option = sources[key]?.find((item) => (item.id ?? item.value) === value);
+  return option?.label || value;
+}
+
+function displayValue(configuration, key, value) {
+  const resolved = optionLabel(configuration, key, value);
+  if (typeof resolved === "boolean") return resolved ? "Yes" : "No";
+  if (Array.isArray(resolved)) return resolved.join(", ");
+  if (resolved && typeof resolved === "object") return JSON.stringify(resolved);
+  if (key === "consignmentValue" && resolved !== "" && resolved != null) {
+    return `₹${Number(resolved).toLocaleString("en-IN")}`;
+  }
+  return resolved === "" || resolved == null ? "—" : String(resolved);
+}
+
+function submittedEntries(formData) {
+  return Object.entries(formData || {}).flatMap(([key, value]) => {
+    if (HIDDEN_PAYLOAD_KEYS.has(key)) return [];
+    if (key === "form" && value && typeof value === "object" && !Array.isArray(value)) {
+      return Object.entries(value).filter(([nestedKey]) => !HIDDEN_PAYLOAD_KEYS.has(nestedKey));
+    }
+    return [[key, value]];
+  });
+}
 
 export default function ClientTrackRequests() {
   const [requests, setRequests] = useState([]);
@@ -46,7 +87,7 @@ export default function ClientTrackRequests() {
   }, [refresh]);
 
   const visible = useMemo(() => requests.filter((request) =>
-    `${request.requestCode} ${request.service?.name} ${request.status}`.toLowerCase().includes(search.toLowerCase())
+    `${request.requestCode} ${request.service?.name} ${request.status} ${JSON.stringify(request.formData || {})}`.toLowerCase().includes(search.toLowerCase())
   ), [requests, search]);
   const openRequest = async (id) => {
     setLoading(true);
@@ -104,18 +145,21 @@ export default function ClientTrackRequests() {
                 onChange={(e) => setSearch(e.target.value)} placeholder="Search requests" className="outline-none" /></label></div>
         </header>
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="max-h-[620px] overflow-auto">
-            <table className="w-full min-w-[850px] text-left text-sm">
+          <div className="max-h-[640px] overflow-auto">
+            <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
               <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-wider text-slate-500">
-                <tr><th className="p-5">Request</th><th>Service</th><th>Submitted</th><th>Assigned to</th><th>Status</th><th /></tr>
+                <tr><th className="w-[150px] p-5">Request No.</th><th className="w-[300px]">Service & Category</th><th className="w-[300px]">Submitted Details</th><th className="w-[110px]">Documents</th><th className="w-[155px]">Submitted</th><th className="w-[165px]">Status</th><th className="w-12" /></tr>
               </thead>
-              <tbody className="divide-y">{loading ? <tr><td colSpan="6" className="p-12 text-center"><LoaderCircle className="mx-auto animate-spin" /></td></tr>
+              <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="7" className="p-12 text-center"><LoaderCircle className="mx-auto animate-spin" /></td></tr>
                 : visible.map((request) => <tr key={request.id} onClick={() => openRequest(request.id)}
-                  className="cursor-pointer transition hover:bg-blue-50/50">
-                  <td className="p-5"><strong className="text-blue-600">{request.requestCode}</strong></td>
-                  <td><strong>{request.service?.name}</strong><small className="block text-slate-400">{request.service?.category}</small></td>
-                  <td>{when(request.submittedAt)}</td><td>{request.assignment?.agent?.name || "Awaiting assignment"}</td>
-                  <td><Status value={request.status} /></td><td><ChevronRight /></td></tr>)}
+                  className="group cursor-pointer align-top transition hover:bg-blue-50/60">
+                  <td className="p-5"><strong className="block text-blue-600">{request.requestCode}</strong><small className="mt-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Click for full details</small></td>
+                  <td className="py-5 pr-5"><ServiceHierarchy request={request} /></td>
+                  <td className="py-5 pr-4"><RequestSummary request={request} /></td>
+                  <td className="py-5 pr-4"><span className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">{request.documentCount || 0} files</span></td>
+                  <td className="py-5 pr-4 text-xs leading-relaxed text-slate-600">{when(request.submittedAt)}</td>
+                  <td className="py-5 pr-4"><Status value={request.status} /><small className="mt-2 block text-slate-400">{request.assignment?.agent?.name || "Awaiting assignment"}</small></td><td className="py-5"><ChevronRight className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-600" /></td></tr>)}
+                {!loading && !visible.length && <tr><td colSpan="7" className="p-16 text-center text-slate-500">No submitted requests match your search.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -125,8 +169,27 @@ export default function ClientTrackRequests() {
   );
 }
 
+function ServiceHierarchy({ request }) {
+  const configuration = request.service?.configuration || {};
+  const entries = submittedEntries(request.formData);
+  const mode = entries.find(([key]) => key === "requestMode");
+  const type = entries.find(([key]) => key === "requestType");
+  return <div><strong className="block text-[15px] leading-snug text-slate-950">{request.service?.name}</strong><div className="mt-2 flex flex-col items-start gap-1.5">{mode && <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">{displayValue(configuration, mode[0], mode[1])}</span>}{type && <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">{displayValue(configuration, type[0], type[1])}</span>}</div>{!mode && !type && <small className="mt-1 block capitalize text-slate-400">{request.service?.category}</small>}</div>;
+}
+
+function RequestSummary({ request }) {
+  const configuration = request.service?.configuration || {};
+  const entries = submittedEntries(request.formData).filter(([key]) => !["requestMode", "requestType"].includes(key)).slice(0, 3);
+  return <div className="space-y-1.5">{entries.map(([key, value]) => <div key={key} className="flex min-w-0 gap-2 text-xs"><span className="shrink-0 font-bold text-slate-400">{FIELD_LABELS[key] || readable(key)}:</span><strong className="truncate text-slate-700" title={displayValue(configuration, key, value)}>{displayValue(configuration, key, value)}</strong></div>)}{!entries.length && <span className="text-xs text-slate-400">No additional details</span>}</div>;
+}
+
 function RequestDetail({ request, onBack, onUpload, onResubmit, busy, resubmissionComments, onCommentsChange }) {
   const openClarification = request.clarifications?.find((item) => item.status === "OPEN");
+  const configuration = request.service?.configuration || {};
+  const formEntries = submittedEntries(request.formData);
+  const serviceKeys = new Set(["requestMode", "requestType"]);
+  const serviceEntries = formEntries.filter(([key]) => serviceKeys.has(key));
+  const otherEntries = formEntries.filter(([key]) => !serviceKeys.has(key));
   const filesFor = (clarification, label) =>
     clarification.documents?.filter((document) => document.label === label) || [];
   return <div className="min-h-full bg-slate-50/70 p-4 sm:p-6 lg:p-8"><div className="mx-auto max-w-7xl">
@@ -150,17 +213,22 @@ function RequestDetail({ request, onBack, onUpload, onResubmit, busy, resubmissi
           className="mt-4 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40">Resubmit to Admin</button>
       </div></div></section>}
     <div className="grid gap-6 lg:grid-cols-[1.5fr_.8fr]"><div className="space-y-6">
-      <Card title="Request details" icon={<FileText />}><div className="grid gap-4 sm:grid-cols-2">
-        <Info label="Service" value={request.service?.name} /><Info label="Submitted" value={when(request.submittedAt)} />
-        <Info label="Assigned agent" value={request.assignment?.agent?.name || "Not assigned"} />
-        <Info label="Current status" value={readable(request.status)} /></div></Card>
+      <Card title="Service Details" icon={<FileText />}><div className="grid gap-4 sm:grid-cols-2">
+        <Info label="Request No." value={request.requestCode} /><Info label="Service Name" value={request.service?.name} />
+        {serviceEntries.map(([key, value]) => <Info key={key} label={FIELD_LABELS[key] || readable(key)} value={displayValue(configuration, key, value)} />)}
+        <Info label="Submitted" value={when(request.submittedAt)} /><Info label="Current Status" value={readable(request.status)} />
+      </div></Card>
+      <Card title="Other Details" icon={<FileText />}><div className="grid gap-4 sm:grid-cols-2">
+        {otherEntries.length ? otherEntries.map(([key, value]) => <Info key={key} label={FIELD_LABELS[key] || readable(key)} value={displayValue(configuration, key, value)} />) : <p className="text-sm text-slate-500">No additional details were submitted.</p>}
+      </div></Card>
       <Card title="Activity timeline" icon={<Clock3 />}><div className="space-y-5">{request.events?.map((event) =>
         <div key={event.id} className="relative flex gap-4 pl-1"><span className="mt-1 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-50" />
           <div><strong>{event.title}</strong><p className="text-sm text-slate-500">{event.comments}</p><small className="text-slate-400">{when(event.createdAt)} · {event.actorName || "System"}</small></div></div>)}</div></Card>
     </div><div className="space-y-6"><Card title="Documents" icon={<FileText />}>
       <div className="space-y-2">{request.documents?.map((file) => <FileRow key={file.id} file={file} kind="original" requestId={request.id} />)}
         {request.clarifications?.flatMap((item) => item.documents || []).map((file) => <FileRow key={`c-${file.id}`} file={file} kind="clarification" requestId={request.id} />)}
-        {request.workDocuments?.map((file) => <FileRow key={`o-${file.id}`} file={file} kind="output" requestId={request.id} />)}</div></Card>
+        {request.workDocuments?.map((file) => <FileRow key={`o-${file.id}`} file={file} kind="output" requestId={request.id} />)}
+        {!request.documents?.length && !request.clarifications?.some((item) => item.documents?.length) && !request.workDocuments?.length && <p className="text-sm text-slate-500">No documents are attached to this request.</p>}</div></Card>
       {request.assignment && <Card title="Agent assignment" icon={<UserRound />}><Info label="Agent" value={request.assignment.agent?.name} />
         <p className="mt-3 text-sm text-slate-500">{request.assignment.instructions}</p></Card>}</div></div>
   </div></div>;
@@ -174,6 +242,9 @@ function Status({ value }) {
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${attention ? "bg-amber-100 text-amber-700" : done ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>{label}</span>;
 }
 function FileRow({ file, kind, requestId }) {
-  return <button onClick={() => downloadWorkflowFile({ role: "client", requestId, kind, fileId: file.id, name: file.name })}
-    className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3 text-left text-sm hover:bg-blue-50"><span>{file.name}</span><span className="text-xs font-bold text-blue-600">Download</span></button>;
+  const preview = () => viewWorkflowFile({ role: "client", requestId, kind, fileId: file.id })
+    .catch((error) => Swal.fire("Unable to open document", error.response?.data?.message || "Please try again.", "error"));
+  const download = () => downloadWorkflowFile({ role: "client", requestId, kind, fileId: file.id, name: file.name })
+    .catch((error) => Swal.fire("Download failed", error.response?.data?.message || "Please try again.", "error"));
+  return <article className="rounded-xl bg-slate-50 p-3 text-sm"><strong className="block truncate">{file.label || readable(file.documentKey || "Document")}</strong><span className="mt-1 block truncate text-xs text-slate-500">{file.name}</span><div className="mt-3 flex gap-2"><button onClick={preview} className="flex items-center gap-1 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-bold text-blue-600"><Eye size={13} /> View</button><button onClick={download} className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-bold text-white"><Download size={13} /> Download</button></div></article>;
 }

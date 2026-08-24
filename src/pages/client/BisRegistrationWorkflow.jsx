@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Download,
   FileCheck2,
   FileText,
   Receipt,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import {
   getBisConfiguration,
+  downloadBisDocument,
   getBisLedger,
   getBisQuote,
   getBisRequests,
@@ -31,7 +33,7 @@ const emptyFile = { status: "Not Uploaded", name: null };
 const money = (value) =>
   Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
-export default function BisRegistrationWorkflow({ service, onBack }) {
+export default function BisRegistrationWorkflow({ onBack }) {
   const navigate = useNavigate();
   const [configuration, setConfiguration] = useState(null);
   const [quote, setQuote] = useState({});
@@ -149,6 +151,13 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
     documents
       .filter(isRequired)
       .every((item) => files[item.id]?.status === "Uploaded");
+  const validationMessage = () => {
+    if (!isStandard.trim()) return "Enter the applicable IS standard number.";
+    if (!modelName.trim()) return "Enter the primary model name or series number.";
+    if (!Number.isInteger(Number(variantCount)) || Number(variantCount) < 1 || Number(variantCount) > 1000) return "Enter a total variant count between 1 and 1,000.";
+    const missing = documents.find((item) => isRequired(item) && files[item.id]?.status !== "Uploaded");
+    return missing ? `Upload the required document: ${missing.label}.` : "";
+  };
   const site =
     requestMode === "FMCS"
       ? "Foreign Manufacturing Site"
@@ -202,6 +211,14 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
       setUploading("");
     }
   }
+  async function downloadFile(key) {
+    if (!requestId) return;
+    try {
+      await downloadBisDocument(requestId, key, files[key]?.name);
+    } catch (e) {
+      Swal.fire("Unable to download document", e.response?.data?.message || "Please try again.", "error");
+    }
+  }
   async function saveDraft() {
     try {
       setBusy(true);
@@ -225,7 +242,11 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
     }
   }
   async function submit() {
-    if (!valid) return;
+    const message = validationMessage();
+    if (message) {
+      await Swal.fire({ icon: "error", title: "BIS audit is incomplete", text: message, confirmButtonColor: "#2952ff" });
+      return;
+    }
     try {
       setBusy(true);
       const id = requestId || (await ensureDraft());
@@ -316,18 +337,16 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
                   onClick={onBack}
                   className="flex items-center gap-2 text-sm font-bold text-slate-500"
                 >
-                  <ArrowLeft size={16} /> Back to Compliance
+                  <ArrowLeft size={16} /> Back to Registration
                 </button>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-black uppercase">
-                    {config?.name || service.title}
-                  </h1>
+                  <h1 className="text-xl font-black uppercase">BIS Certification Manager</h1>
                   <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">
                     G2B Safety
                   </span>
                 </div>
                 <p className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-slate-500">
-                  {config?.standard}
+                  IEC {configuration?.identity?.iecNumber || "Pending"} · {requestMode} Regulatory Mode
                   <Zap size={11} className="text-amber-500" /> Priority SLA
                 </p>
               </div>
@@ -353,30 +372,21 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
                 ))}
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Company / IEC">
-                  <input
-                    readOnly
-                    value={`${configuration?.identity?.companyName || "Client"} · ${configuration?.identity?.iecNumber || "IEC pending"}`}
-                  />
-                </Field>
-                <Field label="Manufacturing Site">
-                  <input readOnly value={site} />
-                </Field>
-                <Field label="Applicable IS Standard">
+                <Field label="IS Standard Number">
                   <input
                     value={isStandard}
                     onChange={(e) => setIsStandard(e.target.value)}
                     placeholder="E.g. IS 13252 (Part 1)"
                   />
                 </Field>
-                <Field label="Product / Model Name">
+                <Field label="Primary Model Name">
                   <input
                     value={modelName}
                     onChange={(e) => setModelName(e.target.value)}
                     placeholder="Product trade name or model"
                   />
                 </Field>
-                <Field label="Number of Variants">
+                <Field label="Total Variants">
                   <input
                     type="number"
                     min="1"
@@ -384,6 +394,9 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
                     value={variantCount}
                     onChange={(e) => setVariantCount(e.target.value)}
                   />
+                </Field>
+                <Field label="Manufacturing Site">
+                  <input readOnly value={site} />
                 </Field>
               </div>
               <div>
@@ -421,6 +434,15 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
                               : "Optional supporting evidence")}
                         </span>
                       </div>
+                      {files[document.id]?.status === "Uploaded" && (
+                        <button
+                          onClick={() => downloadFile(document.id)}
+                          className="rounded-lg p-2 text-[#2952ff]"
+                          aria-label={`Download ${document.label}`}
+                        >
+                          <Download size={16} />
+                        </button>
+                      )}
                       {files[document.id]?.status === "Uploaded" && (
                         <button
                           onClick={() => removeFile(document.id)}
@@ -513,7 +535,7 @@ export default function BisRegistrationWorkflow({ service, onBack }) {
               </button>
               <button
                 onClick={submit}
-                disabled={busy || !valid}
+                disabled={busy}
                 className={`flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-black ${valid ? "bg-[#2952ff] text-white" : "bg-slate-200 text-slate-400"}`}
               >
                 <FileCheck2 size={16} />

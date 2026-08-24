@@ -20,7 +20,6 @@ export function validateFssaiRequest(body = {}, { requireComplete = false } = {}
     licenseRole: text(body.licenseRole),
     foodCategory: text(body.foodCategory),
     shelfLifeRemaining: body.shelfLifeRemaining === "" ? null : Number(body.shelfLifeRemaining),
-    reportingPeriod: text(body.reportingPeriod) || "APR 2025 - MAR 2026",
     documents: body.documents && typeof body.documents === "object" ? body.documents : {}
   };
   const errors = { ...quote.errors };
@@ -29,9 +28,9 @@ export function validateFssaiRequest(body = {}, { requireComplete = false } = {}
     if (!LICENSE_TYPES.has(value.licenseType)) errors.licenseType = "Select New or Renewal";
     if (!LICENSE_ROLES.has(value.licenseRole)) errors.licenseRole = "Select Importer or Exporter";
   }
-  if (value.requestMode === "FICS" && (!Number.isFinite(value.shelfLifeRemaining) || value.shelfLifeRemaining < 60 || value.shelfLifeRemaining > 100)) {
+  if (value.requestMode === "FICS" && requireComplete && (!Number.isFinite(value.shelfLifeRemaining) || value.shelfLifeRemaining < 60 || value.shelfLifeRemaining > 100)) {
     errors.shelfLifeRemaining = "FICS clearance requires at least 60% remaining shelf life";
   }
-  if (requireComplete && value.requestMode !== "FICS" && !value.reportingPeriod) errors.reportingPeriod = "Enter the reporting period";
+  if (value.requestMode === "FICS" && !requireComplete && value.shelfLifeRemaining !== null && (!Number.isFinite(value.shelfLifeRemaining) || value.shelfLifeRemaining < 0 || value.shelfLifeRemaining > 100)) errors.shelfLifeRemaining = "Enter a shelf-life percentage from 0 to 100";
   return { valid: Object.keys(errors).length === 0, errors, value };
 }
