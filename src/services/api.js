@@ -7,4 +7,14 @@ const API = axios.create({
   withCredentials: true
 });
 
+API.interceptors.response.use((response) => {
+  const method = response.config?.method?.toUpperCase();
+  if (typeof window !== "undefined" && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    window.dispatchEvent(new CustomEvent("clouddesk:operations-updated", {
+      detail: { url: response.config?.url, method, occurredAt: Date.now() }
+    }));
+  }
+  return response;
+});
+
 export default API;

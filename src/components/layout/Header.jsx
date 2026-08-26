@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { Bell, Menu, Plus, Search, Sparkles } from "lucide-react";
@@ -18,6 +18,8 @@ export default function Header({ onOpenSidebar }) {
   const { user } = useAuth();
   const [walletBalance, setWalletBalance] = useState(null);
   const [creditLineBalance, setCreditLineBalance] = useState(null);
+  const [searchValue, setSearchValue] = useState("");
+  const searchRef = useRef(null);
   const isCreditLineActive =
     location.pathname === "/client/wallet-credit" &&
     location.hash === "#credit-line";
@@ -60,6 +62,17 @@ export default function Header({ onOpenSidebar }) {
     };
   }, [user?.role]);
 
+  useEffect(() => {
+    const focusSearch = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
+
   const getTitle = () => {
     const path = location.pathname.split("/").filter(Boolean).pop();
 
@@ -68,6 +81,16 @@ export default function Header({ onOpenSidebar }) {
     }
 
     return path.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const submitSearch = () => {
+    const term = searchValue.trim().toLowerCase();
+    if (!term) return;
+    if (user?.role === "ADMIN") {
+      navigate(term.includes("client") ? "/admin/clients" : term.includes("agent") || term.includes("workforce") ? "/admin/workforce" : "/admin/service-requests");
+    } else {
+      navigate(term.includes("invoice") || term.includes("bill") ? "/client/invoices-billing" : term.includes("scheme") ? "/client/schemes-analytics" : term.includes("service") ? "/client/service-store" : "/client/track-requests");
+    }
   };
 
   return (
@@ -92,7 +115,11 @@ export default function Header({ onOpenSidebar }) {
         <div className="premium-search header-search mx-auto flex min-w-0 max-w-[460px] flex-1 items-center gap-2.5 px-3.5 py-2.5 text-slate-400">
           <Search size={15} />
           <input
+            ref={searchRef}
             aria-label="Search"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") submitSearch(); }}
             placeholder="Search requests, clients, documents…"
             className="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
           />
@@ -102,7 +129,7 @@ export default function Header({ onOpenSidebar }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <div className="hidden rounded-xl border border-slate-200/80 bg-slate-100/70 p-1 lg:flex">
+          {user?.role === "CLIENT" ? <div className="hidden rounded-xl border border-slate-200/80 bg-slate-100/70 p-1 lg:flex">
             <button
               type="button"
               onClick={() => navigate("/client/wallet-credit")}
@@ -126,9 +153,9 @@ export default function Header({ onOpenSidebar }) {
             >
               Credit Line
             </button>
-          </div>
+          </div> : null}
 
-          <div className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 py-1 pl-3 pr-1.5 shadow-sm xl:flex">
+          {user?.role === "CLIENT" ? <div className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 py-1 pl-3 pr-1.5 shadow-sm xl:flex">
             <div className="flex flex-col">
               <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">
                 Balance
@@ -144,9 +171,9 @@ export default function Header({ onOpenSidebar }) {
             >
               <Plus size={15} strokeWidth={3} />
             </button>
-          </div>
+          </div> : null}
 
-          <button className="premium-icon-button relative hidden sm:flex" aria-label="Notifications">
+          <button onClick={() => navigate(user?.role === "ADMIN" ? "/admin/service-requests" : user?.role === "AGENT" ? "/agent/tasks" : "/client/track-requests")} className="premium-icon-button relative hidden sm:flex" aria-label="Notifications">
             <Bell size={14} />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-400 ring-2 ring-white" />
           </button>

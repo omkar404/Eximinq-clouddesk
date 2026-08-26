@@ -244,6 +244,7 @@ VALUES(
   'Chamber-certified export origin documentation workflow',
   '{
     "transactionType": "Transactional",
+    "trackingName": "Certificate of Origin",
     "standard": "DGFT Compliance Standard",
     "prioritySla": true,
     "currency": "INR",

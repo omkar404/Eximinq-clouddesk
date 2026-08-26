@@ -21,6 +21,7 @@ import ClientCommandCenter from "../pages/client/ClientCommandCenter";
 import ServiceStore from "../pages/client/ServiceStore";
 import WalletCredit from "../pages/client/WalletCredit";
 import ClientTrackRequests from "../pages/client/ClientTrackRequests";
+import ClientOperations from "../pages/client/ClientOperations";
 import AgentTasks from "../pages/agent/AgentTasks";
 import MenuPlaceholder from "../pages/MenuPlaceholder";
 import Unauthorized from "../pages/Unauthorized";
@@ -136,6 +137,12 @@ export default function AppRoutes() {
             Component = <AdminWorkforce />;
           } else if (menu.path === "/client/track-requests") {
             Component = <ClientTrackRequests />;
+          } else if (menu.path === "/client/invoices-billing") {
+            Component = <ClientOperations module="invoices" />;
+          } else if (menu.path === "/client/schemes-analytics") {
+            Component = <ClientOperations module="schemes" />;
+          } else if (menu.path === "/client/active-workflows") {
+            Component = <ClientOperations module="workflows" />;
           } else if (menu.path === "/agent/tasks" || menu.path === "/agent/dashboard") {
             Component = <AgentTasks />;
           } else if (menu.path === "/client/wallet-credit") {

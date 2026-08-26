@@ -39,6 +39,7 @@ import { createRequestWorkflowRouters } from "./routes/requestWorkflow.routes.js
 import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
 import { createServiceCatalogRouter } from "./routes/serviceCatalog.routes.js";
 import { createLicensingRouter } from "./routes/licensing.routes.js";
+import { createClientOperationsRouter } from "./routes/clientOperations.routes.js";
 
 const app = express();
 const companyDocumentDirectory = resolve("server/uploads/company-profile");
@@ -800,6 +801,7 @@ const workflowRouters = createRequestWorkflowRouters({ requireAuth, requireRole 
 app.use("/client/track-requests", workflowRouters.client);
 app.use("/admin/workflow-requests", workflowRouters.admin);
 app.use("/agent/tasks", workflowRouters.agent);
+app.use("/client/operations", createClientOperationsRouter({ requireAuth, requireRole }));
 
 app.use((err, _req, res, next) => {
   void next;

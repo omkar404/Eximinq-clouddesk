@@ -24,18 +24,29 @@ const FIELD_LABELS = {
 };
 const HIDDEN_PAYLOAD_KEYS = new Set(["requestId", "documents"]);
 
-function optionLabel(configuration, key, value) {
-  const sources = {
-    requestMode: configuration?.requestModes,
-    requestType: configuration?.requestTypes,
-    treatmentType: configuration?.treatmentMethods
-  };
-  const option = sources[key]?.find((item) => (item.id ?? item.value) === value);
-  return option?.label || value;
+function configuredOption(configuration, value) {
+  if (value === "" || value == null || typeof value === "object") return null;
+  for (const collection of Object.values(configuration || {})) {
+    if (!Array.isArray(collection)) continue;
+    const option = collection.find((item) => item && typeof item === "object" && (item.id ?? item.value) === value);
+    if (option?.label) return option;
+  }
+  return null;
+}
+
+function isCategoryKey(key) {
+  return /(type|mode|category|scheme|service|licen[cs]e|certification|tier|class|route|scope)$/i.test(key);
+}
+
+function categoryEntries(request) {
+  const configuration = request.service?.configuration || {};
+  return submittedEntries(request.formData).filter(([key, value]) =>
+    isCategoryKey(key) && configuredOption(configuration, value)
+  );
 }
 
 function displayValue(configuration, key, value) {
-  const resolved = optionLabel(configuration, key, value);
+  const resolved = configuredOption(configuration, value)?.label || value;
   if (typeof resolved === "boolean") return resolved ? "Yes" : "No";
   if (Array.isArray(resolved)) return resolved.join(", ");
   if (resolved && typeof resolved === "object") return JSON.stringify(resolved);
@@ -83,7 +94,13 @@ export default function ClientTrackRequests() {
   useEffect(() => {
     refresh();
     const timer = window.setInterval(refresh, 5000);
-    return () => window.clearInterval(timer);
+    window.addEventListener("clouddesk:operations-updated", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("clouddesk:operations-updated", refresh);
+      window.removeEventListener("focus", refresh);
+    };
   }, [refresh]);
 
   const visible = useMemo(() => requests.filter((request) =>
@@ -171,15 +188,14 @@ export default function ClientTrackRequests() {
 
 function ServiceHierarchy({ request }) {
   const configuration = request.service?.configuration || {};
-  const entries = submittedEntries(request.formData);
-  const mode = entries.find(([key]) => key === "requestMode");
-  const type = entries.find(([key]) => key === "requestType");
-  return <div><strong className="block text-[15px] leading-snug text-slate-950">{request.service?.name}</strong><div className="mt-2 flex flex-col items-start gap-1.5">{mode && <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">{displayValue(configuration, mode[0], mode[1])}</span>}{type && <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">{displayValue(configuration, type[0], type[1])}</span>}</div>{!mode && !type && <small className="mt-1 block capitalize text-slate-400">{request.service?.category}</small>}</div>;
+  const selections = categoryEntries(request);
+  return <div><strong className="block text-[15px] leading-snug text-slate-950">{request.service?.name}</strong><div className="mt-2 flex flex-col items-start gap-1.5">{selections.map(([key, value], index) => <span key={key} className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black ${index % 2 ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>{displayValue(configuration, key, value)}</span>)}</div>{!selections.length && <small className="mt-1 block capitalize text-slate-400">{request.service?.category}</small>}</div>;
 }
 
 function RequestSummary({ request }) {
   const configuration = request.service?.configuration || {};
-  const entries = submittedEntries(request.formData).filter(([key]) => !["requestMode", "requestType"].includes(key)).slice(0, 3);
+  const selectionKeys = new Set(categoryEntries(request).map(([key]) => key));
+  const entries = submittedEntries(request.formData).filter(([key]) => !selectionKeys.has(key)).slice(0, 3);
   return <div className="space-y-1.5">{entries.map(([key, value]) => <div key={key} className="flex min-w-0 gap-2 text-xs"><span className="shrink-0 font-bold text-slate-400">{FIELD_LABELS[key] || readable(key)}:</span><strong className="truncate text-slate-700" title={displayValue(configuration, key, value)}>{displayValue(configuration, key, value)}</strong></div>)}{!entries.length && <span className="text-xs text-slate-400">No additional details</span>}</div>;
 }
 
@@ -187,7 +203,7 @@ function RequestDetail({ request, onBack, onUpload, onResubmit, busy, resubmissi
   const openClarification = request.clarifications?.find((item) => item.status === "OPEN");
   const configuration = request.service?.configuration || {};
   const formEntries = submittedEntries(request.formData);
-  const serviceKeys = new Set(["requestMode", "requestType"]);
+  const serviceKeys = new Set(categoryEntries(request).map(([key]) => key));
   const serviceEntries = formEntries.filter(([key]) => serviceKeys.has(key));
   const otherEntries = formEntries.filter(([key]) => !serviceKeys.has(key));
   const filesFor = (clarification, label) =>
@@ -215,7 +231,7 @@ function RequestDetail({ request, onBack, onUpload, onResubmit, busy, resubmissi
     <div className="grid gap-6 lg:grid-cols-[1.5fr_.8fr]"><div className="space-y-6">
       <Card title="Service Details" icon={<FileText />}><div className="grid gap-4 sm:grid-cols-2">
         <Info label="Request No." value={request.requestCode} /><Info label="Service Name" value={request.service?.name} />
-        {serviceEntries.map(([key, value]) => <Info key={key} label={FIELD_LABELS[key] || readable(key)} value={displayValue(configuration, key, value)} />)}
+        {serviceEntries.map(([key, value], index) => <Info key={key} label={index === 0 ? "Category / Type" : FIELD_LABELS[key] || readable(key)} value={displayValue(configuration, key, value)} />)}
         <Info label="Submitted" value={when(request.submittedAt)} /><Info label="Current Status" value={readable(request.status)} />
       </div></Card>
       <Card title="Other Details" icon={<FileText />}><div className="grid gap-4 sm:grid-cols-2">
