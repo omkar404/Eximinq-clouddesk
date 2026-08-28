@@ -108,7 +108,9 @@ export default function ClientTrackRequests() {
   ), [requests, search]);
   const openRequest = async (id) => {
     setLoading(true);
-    try { setSelected((await getClientTrackedRequest(id)).request); } finally { setLoading(false); }
+    try { setSelected((await getClientTrackedRequest(id)).request); }
+    catch (error) { Swal.fire("Unable to open request", error.response?.data?.message || "The complete request details could not be loaded.", "error"); }
+    finally { setLoading(false); }
   };
   const chooseFile = (clarification, label) => {
     setUploadTarget({ clarification, label });
@@ -175,7 +177,7 @@ export default function ClientTrackRequests() {
                   <td className="py-5 pr-4"><RequestSummary request={request} /></td>
                   <td className="py-5 pr-4"><span className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">{request.documentCount || 0} files</span></td>
                   <td className="py-5 pr-4 text-xs leading-relaxed text-slate-600">{when(request.submittedAt)}</td>
-                  <td className="py-5 pr-4"><Status value={request.status} /><small className="mt-2 block text-slate-400">{request.assignment?.agent?.name || "Awaiting assignment"}</small></td><td className="py-5"><ChevronRight className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-600" /></td></tr>)}
+                  <td className="py-5 pr-4"><Status value={request.status} /><small className="mt-2 block text-slate-400">{request.assignment?.agent?.name || "Awaiting assignment"}</small></td><td className="py-5 pr-3"><button type="button" onClick={(event) => { event.stopPropagation(); openRequest(request.id); }} aria-label={`View ${request.requestCode}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-600 transition hover:bg-blue-600 hover:text-white"><Eye size={16}/></button></td></tr>)}
                 {!loading && !visible.length && <tr><td colSpan="7" className="p-16 text-center text-slate-500">No submitted requests match your search.</td></tr>}
               </tbody>
             </table>
@@ -241,7 +243,7 @@ function RequestDetail({ request, onBack, onUpload, onResubmit, busy, resubmissi
         <div key={event.id} className="relative flex gap-4 pl-1"><span className="mt-1 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-50" />
           <div><strong>{event.title}</strong><p className="text-sm text-slate-500">{event.comments}</p><small className="text-slate-400">{when(event.createdAt)} · {event.actorName || "System"}</small></div></div>)}</div></Card>
     </div><div className="space-y-6"><Card title="Documents" icon={<FileText />}>
-      <div className="space-y-2">{request.documents?.map((file) => <FileRow key={file.id} file={file} kind="original" requestId={request.id} />)}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">{request.documents?.map((file) => <FileRow key={file.id} file={file} kind="original" requestId={request.id} />)}
         {request.clarifications?.flatMap((item) => item.documents || []).map((file) => <FileRow key={`c-${file.id}`} file={file} kind="clarification" requestId={request.id} />)}
         {request.workDocuments?.map((file) => <FileRow key={`o-${file.id}`} file={file} kind="output" requestId={request.id} />)}
         {!request.documents?.length && !request.clarifications?.some((item) => item.documents?.length) && !request.workDocuments?.length && <p className="text-sm text-slate-500">No documents are attached to this request.</p>}</div></Card>
@@ -262,5 +264,5 @@ function FileRow({ file, kind, requestId }) {
     .catch((error) => Swal.fire("Unable to open document", error.response?.data?.message || "Please try again.", "error"));
   const download = () => downloadWorkflowFile({ role: "client", requestId, kind, fileId: file.id, name: file.name })
     .catch((error) => Swal.fire("Download failed", error.response?.data?.message || "Please try again.", "error"));
-  return <article className="rounded-xl bg-slate-50 p-3 text-sm"><strong className="block truncate">{file.label || readable(file.documentKey || "Document")}</strong><span className="mt-1 block truncate text-xs text-slate-500">{file.name}</span><div className="mt-3 flex gap-2"><button onClick={preview} className="flex items-center gap-1 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-bold text-blue-600"><Eye size={13} /> View</button><button onClick={download} className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-bold text-white"><Download size={13} /> Download</button></div></article>;
+  return <article className="compact-document-card"><span className="compact-document-icon"><FileText size={16}/></span><div className="min-w-0 flex-1"><strong>{file.label || readable(file.documentKey || "Document")}</strong><small title={file.name}>{file.name}</small></div><div className="compact-document-actions"><button onClick={preview} title="View document"><Eye size={14}/></button><button onClick={download} title="Download document"><Download size={14}/></button></div></article>;
 }

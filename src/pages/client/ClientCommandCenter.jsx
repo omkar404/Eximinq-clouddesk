@@ -226,7 +226,7 @@ export default function ClientCommandCenter() {
               label="Active workflows"
               value={active.length}
               note="Currently processing"
-              onClick={() => navigate("/client/active-workflows")}
+              onClick={() => setSelected({ metric: "active", label: "Active workflows" })}
             />
             <Metric
               icon={AlertTriangle}
@@ -234,7 +234,7 @@ export default function ClientCommandCenter() {
               value={attention.length}
               note="Needs your attention"
               tone="amber"
-              onClick={() => navigate("/client/track-requests")}
+              onClick={() => setSelected({ metric: "attention", label: "Action required" })}
             />
             <Metric
               icon={CheckCircle2}
@@ -242,7 +242,7 @@ export default function ClientCommandCenter() {
               value={completed.length}
               note="Concluded requests"
               tone="green"
-              onClick={() => navigate("/client/track-requests")}
+              onClick={() => setSelected({ metric: "completed", label: "Completed" })}
             />
             <Metric
               icon={IndianRupee}
@@ -250,7 +250,7 @@ export default function ClientCommandCenter() {
               value={money(outstanding)}
               note="Pending billing value"
               tone="violet"
-              onClick={() => navigate("/client/invoices-billing")}
+              onClick={() => setSelected({ metric: "outstanding", label: "Outstanding" })}
             />
           </section>
 
@@ -396,7 +396,15 @@ export default function ClientCommandCenter() {
           </section>
         </>
       )}
-      {selected && (
+      {selected?.metric ? (
+        <ClientMetricDrawer
+          metric={selected.metric}
+          label={selected.label}
+          rows={selected.metric === "active" ? active : selected.metric === "attention" ? attention : selected.metric === "completed" ? completed : data.invoices.filter((item) => item.paymentStatus !== "PAID")}
+          onClose={() => setSelected(null)}
+          navigate={navigate}
+        />
+      ) : selected && (
         <DetailDrawer
           item={selected}
           onClose={() => setSelected(null)}
@@ -498,6 +506,18 @@ function DetailDrawer({ item, onClose, navigate }) {
           </button>
         </footer>
       </aside>
+    </div>
+  );
+}
+function ClientMetricDrawer({ metric, label, rows, onClose, navigate }) {
+  const isBilling = metric === "outstanding";
+  return (
+    <div className="command-drawer-backdrop metric-modal-backdrop" onClick={onClose}>
+      <section className="metric-detail-modal" onClick={(event) => event.stopPropagation()}>
+        <header><div><span className="command-kicker">Dashboard category</span><h2>{label}</h2><div className="metric-modal-badges"><span>{rows.length} {rows.length === 1 ? "record" : "records"}</span>{isBilling && <b>Total: {money(rows.reduce((sum, item) => sum + Number(item.total || 0), 0))}</b>}</div></div><button onClick={onClose}><X size={19}/></button></header>
+        <div className="metric-modal-table-wrap"><table><thead><tr><th>Request</th><th>Service</th><th>Category / Type</th><th>{isBilling ? "Amount" : "Submitted"}</th><th>Status</th><th>Updated</th></tr></thead><tbody>{rows.length ? rows.map((item) => <tr key={item.id}><td><strong>{item.requestCode}</strong></td><td>{item.serviceName}</td><td>{readable(item.category || "General")}</td><td>{isBilling ? money(item.total) : dateTime(item.submittedAt)}</td><td><Status value={isBilling ? item.paymentStatus : item.status}/></td><td>{dateTime(item.updatedAt || item.submittedAt)}</td></tr>) : <tr><td colSpan="6" className="metric-modal-empty"><CheckCircle2 size={22}/><strong>No matching records</strong><small>The displayed count is zero, so no results are shown.</small></td></tr>}</tbody></table></div>
+        <footer><button onClick={() => navigate(isBilling ? "/client/invoices-billing" : metric === "active" ? "/client/active-workflows" : "/client/track-requests")}>Open full register <ArrowRight size={14}/></button></footer>
+      </section>
     </div>
   );
 }

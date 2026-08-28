@@ -11,7 +11,10 @@ import {
   EyeOff,
   Search,
   LockKeyhole,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  Clock3,
+  ShieldCheck
 } from "lucide-react";
 
 export default function UserManagement() {
@@ -19,6 +22,8 @@ export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -84,16 +89,14 @@ export default function UserManagement() {
   const filteredUsers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) {
-      return users;
-    }
-
-    return users.filter((user) =>
-      [user.name, user.email, user.user_code, user.role?.name]
+    return users.filter((user) => {
+      const role = user.role?.name || user.role;
+      const approval = user.registration_status || "APPROVED";
+      return (!roleFilter || role === roleFilter) && (!statusFilter || approval === statusFilter) && (!query || [user.name, user.email, user.user_code, role]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query))
-    );
-  }, [searchQuery, users]);
+        .some((value) => String(value).toLowerCase().includes(query)));
+    });
+  }, [roleFilter, searchQuery, statusFilter, users]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,12 +144,9 @@ export default function UserManagement() {
               <Sparkles size={14} />
               Identity And Access
             </div>
-            <h1 className="mt-4 text-[2.1rem] font-black tracking-[-0.05em] text-slate-900 md:text-[2.5rem]">
-              Manage system users with clearer controls and less visual clutter
-            </h1>
+            <h1 className="mt-3 text-[1.8rem] font-black tracking-[-0.05em] text-slate-900 md:text-[2.1rem]">User Management</h1>
             <p className="mt-3 text-sm leading-6 text-slate-500">
-              Onboard team members, assign access, and handle credential workflows from a
-              compact workspace that uses screen space more efficiently.
+              Onboard members, review registrations, and manage role-based access.
             </p>
           </div>
           <div className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white/80 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
@@ -156,6 +156,13 @@ export default function UserManagement() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DirectoryMetric icon={<Users size={17}/>} label="Total users" value={users.length}/>
+        <DirectoryMetric icon={<ShieldCheck size={17}/>} label="Clients" value={users.filter((item) => (item.role?.name || item.role) === "CLIENT").length}/>
+        <DirectoryMetric icon={<CheckCircle2 size={17}/>} label="Agents" value={users.filter((item) => (item.role?.name || item.role) === "AGENT").length}/>
+        <DirectoryMetric icon={<Clock3 size={17}/>} label="Pending approval" value={users.filter((item) => item.registration_status === "PENDING").length} tone="amber"/>
       </section>
 
       <section className="dashboard-panel overflow-hidden">
@@ -276,7 +283,8 @@ export default function UserManagement() {
             </h2>
           </div>
 
-          <div className="relative w-full lg:w-[320px]">
+          <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <div className="relative w-full lg:w-[300px]">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -288,17 +296,20 @@ export default function UserManagement() {
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#101eb9] focus:bg-white"
             />
           </div>
+          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"><option value="">All roles</option><option value="ADMIN">Admin</option><option value="AGENT">Agent</option><option value="CLIENT">Client</option></select>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"><option value="">All approvals</option><option value="APPROVED">Approved</option><option value="PENDING">Pending</option><option value="REJECTED">Rejected</option></select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
+          <table className="admin-register-table w-full min-w-[900px] table-fixed">
             <thead className="bg-slate-50/70">
               <tr className="text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                <th className="px-6 py-4">Member</th>
-                <th className="px-6 py-4">Cloudesk ID</th>
-                <th className="px-6 py-4">Access Level</th>
-                <th className="px-6 py-4">Approval</th>
-                <th className="px-6 py-4 text-right">Settings</th>
+                <th className="w-[28%] px-6 py-4">Member</th>
+                <th className="w-[18%] px-6 py-4">CloudDesk ID</th>
+                <th className="w-[17%] px-6 py-4">Access Level</th>
+                <th className="w-[17%] px-6 py-4">Approval</th>
+                <th className="w-[20%] px-6 py-4 text-right">Settings</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -375,4 +386,8 @@ export default function UserManagement() {
       </section>
     </div>
   );
+}
+
+function DirectoryMetric({ icon, label, value, tone = "blue" }) {
+  return <article className={`user-directory-metric metric-${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></article>;
 }

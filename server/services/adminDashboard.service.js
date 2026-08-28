@@ -23,6 +23,14 @@ export async function getAdminDashboard() {
       id: row.id, requestCode: row.request_code, status: row.status,
       submittedAt: row.submitted_at, clientName: row.client_name, serviceName: row.service_name
     })),
+    activeClients: data.users.filter((row) => row.role === "CLIENT").map((row) => ({
+      id: row.id, name: row.name, email: row.email, code: row.user_code,
+      status: row.registration_status || "APPROVED"
+    })),
+    activeAgents: data.users.filter((row) => row.role === "AGENT").map((row) => ({
+      id: row.id, name: row.name, email: row.email, code: row.user_code,
+      status: row.registration_status || "APPROVED"
+    })),
     generatedAt: new Date().toISOString()
   };
 }

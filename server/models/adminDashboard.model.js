@@ -1,7 +1,7 @@
 import { pool } from "../database/pool.js";
 
 export async function selectAdminDashboard() {
-  const [summary, transactions, requests] = await Promise.all([
+  const [summary, transactions, requests, users] = await Promise.all([
     pool.query(`SELECT
       COALESCE((SELECT SUM(amount) FROM financial_transactions WHERE transaction_type='CREDIT'),0) AS money_in,
       COALESCE((SELECT SUM(amount) FROM financial_transactions WHERE transaction_type='DEBIT'),0) AS money_out,
@@ -17,7 +17,11 @@ export async function selectAdminDashboard() {
       ORDER BY ft.created_at DESC,ft.id DESC LIMIT 100`),
     pool.query(`SELECT sr.id,sr.request_code,sr.status,sr.submitted_at,u.name AS client_name,sc.name AS service_name
       FROM service_requests sr JOIN users u ON u.id=sr.user_id JOIN service_catalog sc ON sc.slug=sr.service_slug
-      WHERE sr.status <> 'DRAFT' ORDER BY sr.updated_at DESC LIMIT 8`)
+      WHERE sr.status <> 'DRAFT' ORDER BY sr.updated_at DESC LIMIT 100`),
+    pool.query(`SELECT u.id,u.name,u.email,u.user_code,u.registration_status,u.is_active,r.name AS role
+      FROM users u JOIN roles r ON r.id=u.role_id
+      WHERE r.name IN ('CLIENT','AGENT') AND u.is_active=TRUE
+      ORDER BY r.name,u.name`)
   ]);
-  return { summary: summary.rows[0], transactions: transactions.rows, requests: requests.rows };
+  return { summary: summary.rows[0], transactions: transactions.rows, requests: requests.rows, users: users.rows };
 }

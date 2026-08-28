@@ -8,7 +8,7 @@ export default function Layout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="app-shell text-slate-900">
+    <div className="app-shell cloud-workdesk-experience text-slate-900">
       {isMobileOpen ? (
         <button
           type="button"

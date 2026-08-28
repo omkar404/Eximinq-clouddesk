@@ -153,7 +153,10 @@ export default function AdminServiceRequests() {
 
   const metrics = useMemo(() => ({
     total: requests.length,
-    action: requests.filter((item) => ["SUBMITTED", "UNDER_REVIEW", "PROCESSING", "NEEDS_INFORMATION"].includes(item.status)).length,
+    action: requests.filter((item) => [
+      "SUBMITTED", "UNDER_REVIEW", "ADDITIONAL_DOCUMENTS_REQUESTED",
+      "DOCUMENTS_RESUBMITTED", "IN_PROGRESS", "AGENT_COMPLETED", "ADMIN_REVIEW",
+    ].includes(item.status)).length,
     done: requests.filter((item) => ["APPROVED", "COMPLETED"].includes(item.status)).length,
   }), [requests]);
   const fields = useMemo(() => flattenFormData(selected?.formData), [selected?.formData]);
@@ -191,7 +194,7 @@ export default function AdminServiceRequests() {
                       <td>{request.service?.name}</td><td>{dateTime(request.submittedAt)}</td>
                       <td><strong>{money(request.pricing?.total)}</strong></td>
                       <td><span className={`request-status status-${request.status?.toLowerCase()}`}>{statusLabel(request.status)}</span></td>
-                      <td><button type="button" className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-700 hover:bg-blue-50">Manage <ChevronRight size={16} /></button></td>
+                      <td><button type="button" onClick={(event) => { event.stopPropagation(); openRequest(request.id); }} className="request-manage-button">Manage <ChevronRight size={16} /></button></td>
                     </tr>
                   ))}
             </tbody>
