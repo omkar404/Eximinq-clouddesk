@@ -1809,3 +1809,108 @@ SET name = 'DPD Registration',
     is_active = TRUE,
     updated_at = NOW()
 WHERE slug = 'dpd-registration';
+
+-- Persistent statutory IEC applications and normalized repeatable records.
+CREATE TABLE IF NOT EXISTS iec_applications (
+  id BIGSERIAL PRIMARY KEY,
+  request_code VARCHAR(32) UNIQUE NOT NULL,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+  application_type VARCHAR(40) NOT NULL DEFAULT 'NEW',
+  current_step INTEGER NOT NULL DEFAULT 1,
+  firm_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  registered_address JSONB NOT NULL DEFAULT '{}'::jsonb,
+  bank_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  trade_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  declarations JSONB NOT NULL DEFAULT '{}'::jsonb,
+  iec_number VARCHAR(20),
+  submitted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_iec_applications_user ON iec_applications(user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS iec_branches (
+  id BIGSERIAL PRIMARY KEY,
+  application_id BIGINT NOT NULL REFERENCES iec_applications(id) ON DELETE CASCADE,
+  branch_code VARCHAR(50) NOT NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS iec_persons (
+  id BIGSERIAL PRIMARY KEY,
+  application_id BIGINT NOT NULL REFERENCES iec_applications(id) ON DELETE CASCADE,
+  name VARCHAR(180) NOT NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS iec_documents (
+  id BIGSERIAL PRIMARY KEY,
+  application_id BIGINT NOT NULL REFERENCES iec_applications(id) ON DELETE CASCADE,
+  section VARCHAR(40) NOT NULL,
+  document_key VARCHAR(80) NOT NULL,
+  original_name TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  mime_type VARCHAR(120) NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS iec_application_history (
+  id BIGSERIAL PRIMARY KEY,
+  application_id BIGINT NOT NULL REFERENCES iec_applications(id) ON DELETE CASCADE,
+  status VARCHAR(32) NOT NULL,
+  event_type VARCHAR(50) NOT NULL,
+  comments TEXT,
+  actor_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Persistent Registration-cum-Membership Certificate applications.
+CREATE TABLE IF NOT EXISTS rcmc_applications (
+  id BIGSERIAL PRIMARY KEY,
+  application_number VARCHAR(40) UNIQUE NOT NULL,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  application_type VARCHAR(20) NOT NULL DEFAULT 'NEW',
+  status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+  current_step INTEGER NOT NULL DEFAULT 1,
+  file_name TEXT NOT NULL DEFAULT '',
+  basic_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  firm_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status_holder JSONB NOT NULL DEFAULT '{}'::jsonb,
+  preferred_sector JSONB NOT NULL DEFAULT '{}'::jsonb,
+  application_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  epc_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  profile_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  fee_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  esign_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  rcmc_number VARCHAR(80),
+  expiry_date DATE,
+  submitted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rcmc_applications_user ON rcmc_applications(user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS rcmc_export_performance (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, financial_year VARCHAR(20) NOT NULL, direct_exports NUMERIC(16,2) NOT NULL DEFAULT 0, deemed_exports NUMERIC(16,2) NOT NULL DEFAULT 0, service_exports NUMERIC(16,2) NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_existing_certificates (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_branches (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_banks (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_industrial_registrations (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_persons (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_certifications (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_products (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(240) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_contacts (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, name VARCHAR(180) NOT NULL, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_countries (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, country_code VARCHAR(3) NOT NULL, country_name VARCHAR(120) NOT NULL, UNIQUE(application_id,country_code));
+CREATE TABLE IF NOT EXISTS rcmc_attachments (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, attachment_type VARCHAR(100) NOT NULL, remark TEXT NOT NULL DEFAULT '', original_name TEXT NOT NULL, stored_name TEXT NOT NULL, mime_type VARCHAR(120) NOT NULL, size_bytes BIGINT NOT NULL, uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS rcmc_status_history (id BIGSERIAL PRIMARY KEY, application_id BIGINT NOT NULL REFERENCES rcmc_applications(id) ON DELETE CASCADE, status VARCHAR(32) NOT NULL, event_type VARCHAR(50) NOT NULL, comments TEXT NOT NULL DEFAULT '', actor_id BIGINT REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+CREATE TABLE IF NOT EXISTS rcmc_fee_rules (
+  id BIGSERIAL PRIMARY KEY, epc_code VARCHAR(80) NOT NULL, application_type VARCHAR(20) NOT NULL,
+  membership_years INTEGER NOT NULL, base_fee NUMERIC(14,2) NOT NULL, gst_rate NUMERIC(5,2) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE, UNIQUE(epc_code,application_type,membership_years)
+);
+INSERT INTO rcmc_fee_rules(epc_code,application_type,membership_years,base_fee,gst_rate)
+VALUES ('GENERAL','NEW',1,26000,18),('GENERAL','RENEWAL',1,17000,18)
+ON CONFLICT DO NOTHING;

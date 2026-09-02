@@ -34,6 +34,8 @@ const QUICK_FORM_MENU = {
   display_order: -1,
   children: []
 };
+const CLIENT_STATUTORY_PROFILE_MENU = { id:"statutory-profile", name:"Statutory Profile", path:"/client/statutory-profile", parent_id:null, display_order:90, children:[] };
+const ADMIN_STATUTORY_PROFILE_MENU = { id:"admin-statutory-profile", name:"Statutory Profile", path:"/admin/statutory-profile", parent_id:null, display_order:90, children:[] };
 
 const SERVICE_STORE_SEGMENT_ALIASES = {
   coo: "certificate-of-origin",
@@ -474,7 +476,11 @@ export default function Sidebar({ isCollapsed = false, isMobileOpen = false, onT
   const sidebarMenus =
     user?.role === "CLIENT" && onboarding?.companyProfileCompleted !== true
       ? [QUICK_FORM_MENU]
-      : (menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path);
+      : user?.role === "CLIENT"
+        ? [...(menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path && !menu.path?.includes("statutory-profile")), CLIENT_STATUTORY_PROFILE_MENU]
+        : user?.role === "ADMIN"
+          ? [...(menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path && !menu.path?.includes("statutory-profile")), ADMIN_STATUTORY_PROFILE_MENU]
+          : (menus || []).filter((menu) => menu.path !== QUICK_FORM_MENU.path && !menu.path?.includes("statutory-profile"));
 
   if (!sidebarMenus.length) {
     return null;

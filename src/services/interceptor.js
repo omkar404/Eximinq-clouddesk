@@ -21,6 +21,12 @@ API.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  if (window.location.pathname.startsWith("/admin/statutory-profile")) {
+    const clientId = new URLSearchParams(window.location.search).get("clientId") ||
+      localStorage.getItem("statutoryProfileClientId");
+    if (clientId) config.headers["X-Statutory-Client-Id"] = clientId;
+  }
+
   return config;
 });
 

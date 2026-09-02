@@ -22,6 +22,9 @@ import ServiceStore from "../pages/client/ServiceStore";
 import WalletCredit from "../pages/client/WalletCredit";
 import ClientTrackRequests from "../pages/client/ClientTrackRequests";
 import ClientOperations from "../pages/client/ClientOperations";
+import IecProfile from "../pages/client/IecProfile";
+import RcmcProfile from "../pages/client/RcmcProfile";
+import StatutoryProfileHub from "../pages/StatutoryProfileHub";
 import AgentTasks from "../pages/agent/AgentTasks";
 import MenuPlaceholder from "../pages/MenuPlaceholder";
 import Unauthorized from "../pages/Unauthorized";
@@ -60,6 +63,21 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
+        <Route
+          path="client/statutory-profile"
+          element={<ProtectedRoute><StatutoryProfileHub /></ProtectedRoute>}
+        />
+        <Route
+          path="client/statutory-profile/iec"
+          element={<ProtectedRoute><IecProfile /></ProtectedRoute>}
+        />
+        <Route
+          path="client/statutory-profile/rcmc"
+          element={<ProtectedRoute><RcmcProfile /></ProtectedRoute>}
+        />
+        <Route path="admin/statutory-profile" element={<ProtectedRoute><StatutoryProfileHub /></ProtectedRoute>} />
+        <Route path="admin/statutory-profile/iec" element={<ProtectedRoute><IecProfile /></ProtectedRoute>} />
+        <Route path="admin/statutory-profile/rcmc" element={<ProtectedRoute><RcmcProfile /></ProtectedRoute>} />
         <Route
           path="client/company-profile-setup"
           element={

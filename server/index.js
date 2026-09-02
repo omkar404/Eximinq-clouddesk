@@ -40,6 +40,8 @@ import { createAdminDashboardRouter } from "./routes/adminDashboard.routes.js";
 import { createServiceCatalogRouter } from "./routes/serviceCatalog.routes.js";
 import { createLicensingRouter } from "./routes/licensing.routes.js";
 import { createClientOperationsRouter } from "./routes/clientOperations.routes.js";
+import { createIecProfileRouter } from "./routes/iecProfile.routes.js";
+import { createRcmcProfileRouter } from "./routes/rcmcProfile.routes.js";
 
 const app = express();
 const companyDocumentDirectory = resolve("server/uploads/company-profile");
@@ -802,6 +804,8 @@ app.use("/client/track-requests", workflowRouters.client);
 app.use("/admin/workflow-requests", workflowRouters.admin);
 app.use("/agent/tasks", workflowRouters.agent);
 app.use("/client/operations", createClientOperationsRouter({ requireAuth, requireRole }));
+app.use("/client/statutory-profile/iec", createIecProfileRouter({ requireAuth, requireRole }));
+app.use("/client/statutory-profile/rcmc", createRcmcProfileRouter({ requireAuth, requireRole }));
 
 app.use((err, _req, res, next) => {
   void next;
